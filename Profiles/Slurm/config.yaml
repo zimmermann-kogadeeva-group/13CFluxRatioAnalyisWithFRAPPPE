@@ -1,0 +1,12 @@
+executor: slurm
+jobs: 20
+use-singularity: True
+singularity-args: "--bind ${TMPDIR}:${TMPDIR}"
+use-conda: True
+keep-going: True
+retries: 3
+latency-wait: 90
+default-resources:
+    cpus: 1
+    mem_mb: 2000
+    runtime: 10

@@ -1,0 +1,5 @@
+{
+    "CYTD_uptake": [["CYTDin"], ["CYTD", "CYTDin"]],
+    "CYTD_ccm": [["PYNP1", "CYTDH"], ["PYNP1", "CYTDH", "CYTDK1", "CYTDr", "cytdbm"]],
+    "CYTD_nuc": [["CYTDK1", "CYTDr"], ["PYNP1", "CYTDH", "CYTDK1", "CYTDr", "cytdbm"]]
+}

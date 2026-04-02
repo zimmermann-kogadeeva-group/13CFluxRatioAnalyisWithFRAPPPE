@@ -1,0 +1,27 @@
+[workspace]
+authors = ["Bartosz Bartmanski <bartoszbartmanski@gmail.com>"]
+channels = ["bioconda", "conda-forge"]
+name = "pixi"
+platforms = ["linux-64"]
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
+python = "3.10.*"
+glpk = ">=4.65"
+ipopt = ">=3.14.19,<4"
+plotly = ">=6.5.2,<7"
+
+[pypi-dependencies]
+cobra = ">=0.29.1, <0.30"
+diskcache = ">=5.6.3, <6"
+hopsy = ">=1.6.1, <2"
+freeflux = ">=0.3.6, <0.4"
+jax = { version = ">=0.4, <=0.4.18", extras = ["cpu"] }
+jupyterlab = ">=4.4.9, <5"
+pandas = ">=1.5.3, <2"
+polyround = ">=0.4.0, <0.5"
+seaborn = ">=0.13.2, <0.14"
+ipympl = ">=0.9.8, <0.10"
+shap = ">=0.49.1, <0.50"

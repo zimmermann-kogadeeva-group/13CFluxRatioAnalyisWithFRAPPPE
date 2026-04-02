@@ -1,0 +1,5 @@
+{
+    "ADN_uptake": [["ADNin"], ["NTD7", "ADNin"]],
+    "ADN_ccm": [["ADNUC", "PUNP1"], ["ADNUC", "PUNP1", "ADNK1", "adnbm"]],
+    "ADN_nuc": [["ADNK1"], ["ADNUC", "PUNP1", "ADNK1", "adnbm"]]
+}

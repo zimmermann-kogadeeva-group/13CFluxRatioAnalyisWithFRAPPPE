@@ -1,0 +1,5 @@
+{
+    "THYMD_uptake": [["THYMDin"], ["NTD5", "THYMDin"]],
+    "THYMD_ccm": [["TMDPP"], ["TMDPP", "TMDK1", "thymdbm"]],
+    "THYMD_nuc": [["TMDK1"], ["TMDPP", "TMDK1", "thymdbm"]]
+}

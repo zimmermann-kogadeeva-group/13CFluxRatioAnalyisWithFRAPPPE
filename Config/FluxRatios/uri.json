@@ -1,0 +1,5 @@
+{
+    "URI_uptake": [["URIin"], ["NTD2", "URIin"]],
+    "URI_ccm": [["PYNP2r", "URIH"], ["PYNP2r", "URIH", "URIK1", "uribm"]],
+    "URI_nuc": [["URIK1"], ["PYNP2r", "URIH", "URIK1", "uribm"]]
+}

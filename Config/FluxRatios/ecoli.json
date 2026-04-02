@@ -1,0 +1,7 @@
+{
+    "glycolysis_PPP": [["pgi"], ["pgi", "zwf"]],
+    "pyruvate_from_ED": [["edp2"], ["edp2", "pyk", "mae"]],
+    "gluconeogenesis": [["pck"], ["pck", "eno"]],
+    "pyruvate_from_malic_enzyme": [["mae"], ["mae", "pyk", "edp2"]],
+    "anaplerosis": [["pyc"], ["pyc", "sdh", "gs1"]]
+}

@@ -1,0 +1,6 @@
+{
+    "labeled_substrate": "Glc.ex", 
+    "labeling_pattern": ["111111", "100000"], 
+    "percentage": [0.5,0.5], 
+    "purity": [0.994, 0.994]    
+}
