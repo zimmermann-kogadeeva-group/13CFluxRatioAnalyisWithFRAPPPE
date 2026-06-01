@@ -1,0 +1,442 @@
+---
+title: "Plot maes and prediction values"
+output: html_document
+date: "2026-03-04"
+---
+
+## Visualize MAE of predictors as performance evaluation
+
+
+```{r}
+
+library(tidyverse)
+library(here)
+library(patchwork)
+
+colors <- c(
+    "Glucose"   = "#56B4E9",
+    "Glucose+\nRibose"    = "#CC79A7",
+    "Glucose+\nThymidine" = "#D55E00",
+    "Glucose+\nAdenosine" = "#009E73",
+    "Glucose+\nUridine"   = "#E69F00",
+    "Glucose+\nCytidine"  = "#0072B2"
+)
+
+theme_dbt <- function() {
+    theme(
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        strip.background = element_rect(fill = "white"), 
+        axis.text.x = element_text(size = 13, angle = 45, hjust = 1), 
+        axis.text.y = element_text(size = 13), 
+        strip.text = element_text(size = 15), 
+        legend.text = element_text(size = 13), 
+        legend.title = element_text(size = 15)
+    )
+}
+
+dir.create(file.path(here("Output/plot_maes_preds/")), showWarnings = FALSE)
+
+# Ecoli predictor MAEs
+
+maes_ecoli <- read_csv(here("Output/species_comparison_flux_ratio_prediction/Ecoli/predictors_w_noise/maes.csv")) %>% 
+    rename("Glucose" = "...1") %>% 
+    pivot_longer(cols = -"Glucose", values_to = "MAE", names_to = "ratio") %>% 
+    mutate(model = "Ecoli")
+
+
+maes_buni <- read_csv(here("Output/species_comparison_flux_ratio_prediction/BuniPvul/predictors_w_noise/maes.csv")) %>% 
+    rename("Glucose" = "...1") %>% 
+    pivot_longer(cols = -"Glucose", values_to = "MAE", names_to = "ratio") %>% 
+    mutate(model = "Buni")
+
+all_maes <- bind_rows(maes_ecoli, maes_buni) %>% complete(Glucose, ratio, model)
+
+
+best_preds <- all_maes %>% 
+    group_by(ratio, model) %>% 
+    arrange(MAE) %>% 
+    slice_head(n=1) %>% 
+    rename("label" = "MAE")
+
+maes2 <- all_maes %>% 
+    left_join(best_preds, by = c("Glucose", "ratio", "model")) %>% 
+    mutate(label = as.character(round(label, 2))) %>% 
+    mutate(label = ifelse(is.na(label), "", label)) %>% 
+    mutate(ratio = factor(ratio, levels = rev(levels(factor(all_maes$ratio))))) %>% 
+    mutate(Glucose = factor(
+        Glucose, 
+        levels = c("Glc_100_U13C", "Glc_100_113C", "Glc_50_U13C_50_113C"), 
+        labels = c("100% U13C", "100% 1-13C", "50% U13C 50% 113C"))
+    ) %>% 
+    mutate(ratio = gsub("_", " ", ratio))
+    
+ggplot(maes2 %>% filter(model == "Ecoli"), aes(y = ratio, x = Glucose, fill = MAE)) + 
+    geom_tile() + 
+    geom_text(aes(label = label,
+                  color = MAE > 0.1)) + 
+    scale_fill_viridis_c(name = "MAE", option = "viridis", direction = -1, limits = c(0,0.27)) +
+    scale_color_manual(values = c("TRUE" = "white",
+                                  "FALSE" = "black"),
+                       guide = "none") +
+    theme_bw() + 
+    facet_wrap(~model) + 
+    theme(
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        strip.background = element_rect(fill = "white"), 
+        axis.text.x = element_text(size = 13, angle = 20, hjust = 1), 
+        axis.text.y = element_text(size = 13), 
+        strip.text = element_text(size = 15), 
+        legend.text = element_text(size = 13), 
+        legend.title = element_text(size = 15)
+
+    ) + 
+    xlab("") + 
+    ylab("") + 
+    plot_layout(widths = unit(5, "cm"), heights = unit(8, "cm"))
+    
+    
+ggsave(
+    filename = "heatmapEcoli.pdf", 
+    path = here("Output/plot_maes_preds/"),
+    width = 5,
+    height = 4.5
+)
+
+   
+ggplot(maes2 %>% filter(model == "Buni"), aes(y = ratio, x = Glucose, fill = MAE)) + 
+    geom_tile() + 
+    geom_text(aes(label = label,
+                  color = MAE > 0.1)) + 
+    scale_fill_viridis_c(name = "MAE", option = "viridis", direction = -1, limits = c(0,0.27)) +
+    scale_color_manual(values = c("TRUE" = "white",
+                                  "FALSE" = "black"),
+                       guide = "none") +
+    theme_bw() + 
+    facet_wrap(~model) + 
+    theme(
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        strip.background = element_rect(fill = "white"), 
+        axis.text.x = element_text(size = 13, angle = 20, hjust = 1), 
+        axis.text.y = element_text(size = 13), 
+        strip.text = element_text(size = 15), 
+        legend.text = element_text(size = 13), 
+        legend.title = element_text(size = 15)
+    ) + 
+    xlab("") + 
+    ylab("") + 
+    plot_layout(widths = unit(5, "cm"), heights = unit(8, "cm"))
+
+    
+ggsave(
+    filename = "heatmapBuni.pdf", 
+    path = here("Output/plot_maes_preds/"),
+    width = 5,
+    height = 4.5
+)
+
+
+```
+
+# Visualise prediction + intervals
+
+based on the evaluation above, we select the best predictors and 
+
+```{r}
+
+colors <- c(
+            "Buni" = "#ef476f", 
+            "Ecoli" = "#118ab2",
+            "Pvul" = "#06d6a0"         
+        )
+        
+glc_conds <- c("Glc_100_U13C", "Glc_100_113C", "Glc_50_U13C_50_113C")        
+
+.read_pred_results <- function(glc_cond, path_to_files, means = TRUE) {
+     
+     if(means == TRUE) {
+        suffix <- "_means.csv"
+     } else {
+        suffix <- ".csv"
+     }
+     
+    preds <- read_csv(here(paste0(path_to_files, "pred_", glc_cond, suffix))) %>% 
+        rename("ratio" = "...1") %>% 
+        pivot_longer(cols = -"ratio", names_to = "Sample", values_to = "prediction")
+        
+    q10 <- read_csv(here(paste0(path_to_files, "q10_", glc_cond, suffix))) %>% 
+        rename("ratio" = "...1") %>% 
+        pivot_longer(cols = -"ratio", names_to = "Sample", values_to = "q10")
+        
+        
+    q90 <- read_csv(here(paste0(path_to_files, "q90_", glc_cond, suffix))) %>% 
+        rename("ratio" = "...1") %>% 
+        pivot_longer(cols = -"ratio", names_to = "Sample", values_to = "q90")
+    
+    results <- preds %>% 
+        left_join(q10, by = c("ratio", "Sample")) %>% 
+        left_join(q90, by = c("ratio", "Sample")) %>% 
+        mutate(Glucose = glc_cond)
+        
+    return(results)
+    
+}
+
+preds_BuniPvul_means <- lapply(glc_conds, .read_pred_results, here("Output/species_comparison_flux_ratio_prediction/BuniPvul/predictors_w_noise/"), TRUE) %>% bind_rows() %>% mutate(model = "Buni", type = "mean")
+
+preds_Ecoli_means <- lapply(glc_conds, .read_pred_results, here("Output/species_comparison_flux_ratio_prediction/Ecoli/predictors_w_noise/"), TRUE) %>% bind_rows() %>% mutate(model = "Ecoli", type = "mean")
+
+preds <- bind_rows(preds_BuniPvul_means, preds_Ecoli_means)
+
+
+preds_bestpred <- preds %>% 
+    filter((Sample == "Ecoli" & model == "Ecoli") | (Sample %in% c("Buni", "Pvul") & model == "Buni")) %>% 
+    inner_join(best_preds, by = c("Glucose", "ratio", "model")) %>% 
+    filter(type == "mean") %>% 
+    mutate(Glucose = factor(
+        Glucose, 
+        levels = c("Glc_100_U13C", "Glc_100_113C", "Glc_50_U13C_50_113C"), 
+        labels = c("100% U13C", "100% 1-13C", "50% U13C 50% 113C"))
+    ) %>% 
+    mutate(ratio = gsub("_", " ", ratio))
+    
+
+ggplot(preds_bestpred, aes(x = ratio, y = prediction, group = Sample, color = Sample)) + 
+    
+    # facet_grid(~model) +
+    geom_errorbar(aes(ymin = q10, ymax = q90), position = position_dodge(width = 0.75), color = "black", width = 0) +  
+    geom_point(size = 2, position = position_dodge(width = 0.75)) +
+    
+    ylim(0,1) + 
+    theme_bw() + 
+    coord_flip() + 
+    scale_color_manual(values = colors) + 
+    theme_dbt() +
+    xlab("") + 
+    ylab("") + 
+    plot_layout(widths = unit(6, "cm"), heights = unit(8, "cm"))
+
+    
+
+ggsave(
+    filename = "best_preds_mean.pdf", 
+    path = here("Output/plot_maes_preds/"),
+    width = 6,
+    height = 4.5
+)    
+
+        
+```
+
+# Plot maes and predictors of B. uniformis nucleoside co-feeding
+
+```{r}
+
+shapes <- c(
+    "nucleoside MDV\nprovided as input" = 16, 
+    "no nucleoside MDV\nprovided as input" = 17, 
+    "all MDVs in\nglucose condition" = 15, 
+    "MDV overlap of glucose\nand co-feed condition" = 18
+)
+
+cofeed_preds <- list.files(path = here("Output/plot_maes_preds_cofeed/CofeedBuni/")) # TODO: fix path of cofeeding predictions
+
+preds_cofeed <- bind_rows(lapply((paste0("Output/plot_maes_preds_cofeed/CofeedBuni/", cofeed_preds)), \(x) read_csv(x))) %>% 
+    mutate(model = factor(condition, levels = c("Adenosine", "Cytidine", "Thymidine","Uridine"), labels = c("Glucose+\nAdenosine", "Glucose+\nCytidine", "Glucose+\nThymidine", "Glucose+\nUridine"))) %>% 
+    filter(feature_subset == TRUE) %>% 
+    mutate("Feature Set" = factor(comparison, levels = c("full_sel", "wo nuc sel", "glc_sel", "both_sel"), labels = c("nucleoside MDV\nprovided as input", "no nucleoside MDV\nprovided as input", "all MDVs in\nglucose condition", "MDV overlap of glucose\nand co-feed condition"))) %>% 
+    mutate(flux_ratio = gsub(".*_", "", flux_ratio)) %>% 
+    mutate(label = as.character(round(mae, 2))) %>% 
+    mutate(flux_ratio = factor(flux_ratio, levels = c("ccm", "phos", "uptake"), labels = c("Ribose\ncleavage", "Phosphorylation", "Uptake")))
+# plot MAEs
+
+preds_cofeed_noglc <- preds_cofeed %>% 
+    filter(condition != "Glucose")
+
+ggplot(preds_cofeed_noglc, aes(x = model, y = flux_ratio, fill = mae)) + 
+    geom_tile() + 
+    geom_text(aes(label = label,
+                  color = round(mae, 2) > 0.1), size = 5) + 
+    scale_fill_viridis_c(name = "MAE", option = "viridis", direction = -1, limits = c(0,0.27)) +
+    scale_color_manual(values = c("TRUE" = "white",
+                                  "FALSE" = "black"),
+                       guide = "none") +
+    theme_bw() + 
+    facet_wrap(.~`Feature Set`) +
+    theme(
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        strip.background = element_rect(fill = "white"), 
+        axis.text.x = element_text(size = 14, angle = 45, hjust = 1), 
+        axis.text.y = element_text(size = 14), 
+        strip.text = element_text(size = 15), 
+        legend.text = element_text(size = 14), 
+        legend.title = element_text(size = 15)
+    ) + 
+    xlab("") + 
+    ylab("") + 
+    plot_layout(widths = unit(13, "cm"), heights = unit(7, "cm"))
+
+ggsave(
+    filename = "maes_cofeed.pdf", 
+    path = here("Output/plot_maes_preds/"),
+    width = 8,
+    height = 5
+)    
+
+# select appropriate predictions and make a lineplot similar to what I had previously
+
+preds_cofeed_sel <- preds_cofeed %>% 
+    filter(condition != "Glucose") %>% 
+    group_by(condition, flux_ratio, nucleoside) %>% 
+    arrange(mae, .by_group = TRUE) %>% 
+    mutate(rank = row_number())
+    
+preds_switch <- preds_cofeed_sel %>% 
+    ungroup() %>% 
+    filter(comparison %in% c("wo nuc sel") & mae < 0.1) %>% 
+    select(condition, flux_ratio, comparison, nucleoside) %>% 
+    mutate(changerank = TRUE) %>% 
+    unique()
+
+preds_cofeed_sel <- preds_cofeed_sel %>% 
+    left_join(preds_switch, by = c("condition", "flux_ratio", "comparison", "nucleoside")) %>% 
+    mutate(changerank = ifelse(is.na(changerank), FALSE, TRUE)) %>% 
+    group_by(condition, flux_ratio, comparison) %>% 
+    mutate(rank = ifelse(changerank == TRUE, 0, rank))
+    
+# filter lowest-ranks and plot
+
+preds_lowest <- preds_cofeed_sel %>% 
+    group_by(condition, flux_ratio) %>% 
+    filter(rank == min(rank)) %>% 
+    filter(mae < 0.1) %>% 
+    ungroup() %>% 
+    select(flux_ratio, pred, pred_q10, pred_q90, model, condition, `Feature Set`) %>% 
+    complete(model, flux_ratio) %>% 
+    mutate(condition = ifelse(is.na(condition), gsub("Glucose\\+\\\n", "", model), condition)) %>% 
+    mutate(na_label = ifelse(is.na(pred), "N/A", NA))
+     
+preds_lowest$model <- factor(preds_lowest$model, levels = rev(levels(preds_lowest$model)))
+
+ggplot(preds_lowest, aes(x = pred, y = flux_ratio, color = model, shape = `Feature Set`)) + 
+    geom_errorbar(aes(xmin = pred_q10, xmax = pred_q90, group = model), position = position_dodge(width = 0.65), color = "black", width = 0) +  
+    geom_point(position = position_dodge(width = 0.65), size = 2.5) +
+    geom_text(aes(x = 0.1, y = flux_ratio, label = na_label, color = model, group = model), position = position_dodge(width = 0.65), color = "black", size = 4) + 
+    guides(color = guide_legend(reverse = TRUE)) + 
+    theme_bw()+
+    facet_wrap("co-feed" ~ .) + 
+    theme(
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        strip.background = element_rect(fill = "white"), 
+        axis.text.x = element_text(size = 13, angle = 45, hjust = 1), 
+        axis.text.y = element_text(size = 13), 
+        strip.text = element_text(size = 15), 
+        legend.text = element_text(size = 13), 
+        legend.title = element_text(size = 15)
+    ) + 
+    xlab("") + 
+    ylab("") +
+    xlim(0,1) + 
+    plot_layout(widths = unit(3, "cm"), heights = unit(6, "cm")) + 
+    scale_color_manual(values = colors, name = "Model") + 
+    scale_shape_manual(values = shapes)
+     
+ggsave(
+    filename = "pred_cofeed_nucl.pdf", 
+    path = here("Output/plot_maes_preds/"),
+    width = 4,
+    height = 4
+)    
+
+
+# plot those of glucose only conditions
+
+preds_cofeed_sel <- preds_cofeed %>% 
+    filter(condition == "Glucose") %>% 
+    filter(!(is.na(pred))) %>% 
+    group_by(condition, flux_ratio, nucleoside) %>% 
+    arrange(mae, .by_group = TRUE) %>% 
+    mutate(rank = row_number())
+    
+preds_switch <- preds_cofeed_sel %>% 
+    ungroup() %>% 
+    filter(comparison %in% c("wo nuc sel") & mae < 0.1) %>% 
+    select(condition, flux_ratio, comparison, nucleoside) %>% 
+    mutate(changerank = TRUE) %>% 
+    unique()
+
+preds_cofeed_sel <- preds_cofeed_sel %>% 
+    left_join(preds_switch, by = c("condition", "flux_ratio", "comparison", "nucleoside")) %>% 
+    mutate(changerank = ifelse(is.na(changerank), FALSE, TRUE)) %>% 
+    group_by(condition, flux_ratio, comparison) %>% 
+    mutate(rank = ifelse(changerank == TRUE, 0, rank))
+    
+
+aux <- data.frame(
+    nucleoside = c("ADN", "CYTD", "THYMD", "URI"), 
+    model = c("Glucose+\nAdenosine", "Glucose+\nCytidine", "Glucose+\nThymidine", "Glucose+\nUridine")
+)
+
+nadf <- data.frame(
+    model = rep(c("Glucose+\nThymidine"), 3), 
+    flux_ratio = factor(c("Ribose\ncleavage", "Phosphorylation", "Uptake")), 
+    condition = "Glucose", 
+    na_label = "N/A"
+)
+
+# filter lowest-ranks and plot
+
+preds_lowest <- preds_cofeed_sel %>% 
+    group_by(flux_ratio, nucleoside) %>% 
+    filter(rank == min(rank)) %>% 
+    select(-model) %>% 
+    left_join(aux, by = c("nucleoside")) %>% 
+    filter(mae < 0.1) %>%
+    ungroup() %>%  
+    select(flux_ratio, pred, pred_q10, pred_q90, model, condition, `Feature Set`) %>% 
+    ungroup() %>% 
+    complete(model, flux_ratio) %>% 
+    mutate(condition = "Glucose") %>% 
+    mutate(na_label = ifelse(is.na(pred), "N/A", NA)) %>% 
+    bind_rows(nadf)
+    
+     
+preds_lowest$model <- factor(preds_lowest$model, levels = rev(c("Glucose+\nAdenosine", "Glucose+\nCytidine", "Glucose+\nThymidine", "Glucose+\nUridine")))
+
+
+ggplot(preds_lowest, aes(x = pred, y = flux_ratio, color = model, shape = `Feature Set`)) + 
+    geom_errorbar(aes(xmin = pred_q10, xmax = pred_q90, group = model), position = position_dodge(width = 0.65), color = "black", width = 0) +  
+    geom_point(position = position_dodge(width = 0.65), size = 2.5) +
+    geom_text(aes(x = 0.1, y = flux_ratio, label = na_label, color = model, group = model), position = position_dodge(width = 0.65), color = "black", size = 4) + 
+    guides(color = guide_legend(reverse = TRUE)) + 
+    theme_bw()+
+    facet_wrap("glucose only" ~ .) + 
+    theme(
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        strip.background = element_rect(fill = "white"), 
+        axis.text.x = element_text(size = 13, angle = 45, hjust = 1), 
+        axis.text.y = element_text(size = 13), 
+        strip.text = element_text(size = 15), 
+        legend.text = element_text(size = 13), 
+        legend.title = element_text(size = 15)
+    ) + 
+    xlab("") + 
+    ylab("") +
+    xlim(0,1) + 
+    plot_layout(widths = unit(3, "cm"), heights = unit(6, "cm")) + 
+    scale_color_manual(values = colors, name = "Model") + 
+    scale_shape_manual(values = shapes)
+     
+ggsave(
+    filename = "pred_cofeed_glconly.pdf", 
+    path = here("Output/plot_maes_preds/"),
+    width = 4,
+    height = 4
+)    
+    
+```

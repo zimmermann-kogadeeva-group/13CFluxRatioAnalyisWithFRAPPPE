@@ -1,0 +1,351 @@
+# Summary
+
+In this vignette, I perform all analyses for the strain comparison section. Functions are provided in the process13C.R file.
+First, I process the output from compound discoverer 3.4. Next, I filter features and last, I plot labeling patterns, percentage 
+of total labeled carbon, cosine similarities of labeling patterns. Last, I export data for the usage of modeling.
+
+## Data processing
+
+```{r}
+
+library("tidyverse")
+library("here")
+source(here("Scripts/process13C.R"))
+
+dir.create(file.path(here("Output/species_comparison_data_analysis/")), showWarnings = FALSE)
+
+# load the data repository before continuing
+
+################## # negative
+
+path_to_CD34_output = here("Data/species_comparison_data_analysis/neg/20260124_DBT003ACADAF_compounds_nested.xlsx") 
+path_to_metadata = here("Data/species_comparison_data_analysis/neg/metadata_neg.csv")
+path_to_annotation_corrections = here("Data/species_comparison_data_analysis/neg/annotation_corrections_neg.csv")
+rts = read_csv(here("Data/species_comparison_data_analysis/neg/mcf_rt_neg.csv"))
+
+
+relabs_neg <- format_CD34_output(
+    path_to_CD34_output,
+    path_to_metadata, 
+    path_to_annotation_corrections
+)
+ 
+relabs_filtered_neg <- relabs_neg %>% 
+    filter(experiment %in% c("DBT003AD", "DBT003AF") & strain != "water")
+
+write_csv(pivot_wider_fortables(relabs_filtered_neg, "neg"), here("Output/species_comparison_data_analysis/neg/relabs_unfiltered.csv"))
+
+relabs_filtered_neg <- relabs_filtered_neg %>% 
+    filter_background(., 3) %>% 
+    filter((experiment == "DBT003AD" & strain %in% c("Buni", "Pvul")) | (experiment == "DBT003AF" & strain == "Ecoli")) %>% 
+    group_by(identifier, strain, medium) %>%
+    filter_nobs(., 3) %>% 
+    filter_MS2() %>% 
+    filter_rtlib(., rts) %>%
+    add_mslvl() %>%
+    ungroup() %>%
+    filter_sd(., 0.3) %>% 
+    filter_not_in_all() %>% 
+    filter_m0_threshold(m0_group = "U13C", m0_threshold = 0.25)
+
+############### # positive
+
+path_to_CD34_output = here("Data/species_comparison_data_analysis/pos/20260129_DBT003ACADAF_Compounds_nested_pos.xlsx") 
+path_to_annotation_corrections = here("Data/species_comparison_data_analysis/pos/annotation_corrections.csv")
+path_to_metadata = here("Data/species_comparison_data_analysis/pos/metadata_pos.csv")
+rts = read_csv(here("Data/species_comparison_data_analysis/pos/mcf_rt_pos.csv"))
+
+
+relabs_pos <- format_CD34_output(
+    path_to_CD34_output,
+    path_to_metadata
+)
+
+relabs_filtered_pos <- relabs_pos %>% 
+        filter(experiment %in% c("DBT003AD", "DBT003AF") & strain != "water")
+
+write_csv(pivot_wider_fortables(relabs_filtered_pos, "pos"), here("Output/species_comparison_data_analysis/pos/relabs_unfiltered.csv"))
+
+relabs_filtered_pos <- relabs_filtered_pos %>% 
+    filter_background(., 3) %>% 
+    filter((experiment == "DBT003AD" & strain %in% c("Buni", "Pvul")) | (experiment == "DBT003AF" & strain == "Ecoli")) %>% 
+    group_by(identifier, strain, medium) %>%
+    filter_nobs(., 3) %>% 
+    filter_MS2() %>% 
+    filter_rtlib(., rts) %>% 
+    add_mslvl() %>%
+    ungroup() %>%
+    filter_sd(., 0.3) %>% 
+    filter_not_in_all() %>% 
+    filter_m0_threshold(m0_group = "U13C", m0_threshold = 0.25)
+
+# bind positive and negative together
+
+relabs_filtered <- bind_neg_pos(relabs_filtered_neg, relabs_filtered_pos)
+relabs_filtered_markeddup <- identify_duplicate_feats(relabs_filtered)
+relabs_filtered_remdup <- filter(relabs_filtered_markeddup, marked_duplicate == FALSE)
+
+write_csv(pivot_wider_fortables(relabs_filtered_remdup), here("Output/species_comparison_data_analysis/relabs_filtered_joint.csv"))
+
+perc_lab_carb <- calc_perc_lab_carb(relabs_filtered_remdup)
+cosine_sim <- calc_cosine_similarity(relabs_filtered_remdup, ref_strain = "Ecoli")
+
+# get output list of metabolites for metabolights 
+
+relabs_filtered_remdup %>% 
+  select(identifier, rt_min, Formula, delta_ppm, mode) %>% 
+  unique() %>% 
+  separate_wider_delim(identifier, delim = "_", names = c("name", "mz", "rt"), too_many = "debug") %>% 
+  mutate(experiment = "species_comparison") %>% 
+  write_csv(here("Output/species_comparison_data_analysis/features_for_metabolights.csv"))
+
+
+
+```
+
+## Plot individual compounds labeling patterns
+
+```{r}
+
+# turn df into list of sub-dfs by identifier, extract identifier
+
+relabs_pos_U13C <- filter(relabs_filtered_pos, medium == "U13C")
+relabs_pos_U13C <- split(relabs_pos_U13C, relabs_pos_U13C$identifier)
+relabs_pos_113C <- filter(relabs_filtered_pos, medium == "113C")
+relabs_pos_113C <- split(relabs_pos_113C, relabs_pos_113C$identifier)
+relabs_pos_U13C113C <- filter(relabs_filtered_pos, medium == "U13C113C")
+relabs_pos_U13C113C <- split(relabs_pos_U13C113C, relabs_pos_U13C113C$identifier)
+
+# create folders
+
+dir.create(file.path(here("Output/species_comparison_data_analysis/pos/")), showWarnings = FALSE)
+dir.create(file.path(here("Output/species_comparison_data_analysis/pos/U13C/")), showWarnings = FALSE)
+dir.create(file.path(here("Output/species_comparison_data_analysis/pos/113C/")), showWarnings = FALSE)
+dir.create(file.path(here("Output/species_comparison_data_analysis/pos/U13C113C/")), showWarnings = FALSE)
+
+# do the same for negatives
+
+relabs_neg_U13C <- filter(relabs_filtered_neg, medium == "U13C")
+relabs_neg_U13C <- split(relabs_neg_U13C, relabs_neg_U13C$identifier)
+relabs_neg_113C <- filter(relabs_filtered_neg, medium == "113C")
+relabs_neg_113C <- split(relabs_neg_113C, relabs_neg_113C$identifier)
+relabs_neg_U13C113C <- filter(relabs_filtered_neg, medium == "U13C113C")
+relabs_neg_U13C113C <- split(relabs_neg_U13C113C, relabs_neg_U13C113C$identifier)
+
+# create folders
+
+dir.create(file.path(here("Output/species_comparison_data_analysis/neg/")), showWarnings = FALSE)
+dir.create(file.path(here("Output/species_comparison_data_analysis/neg/U13C/")), showWarnings = FALSE)
+dir.create(file.path(here("Output/species_comparison_data_analysis/neg/113C/")), showWarnings = FALSE)
+dir.create(file.path(here("Output/species_comparison_data_analysis/neg/U13C113C/")), showWarnings = FALSE)
+
+
+########################################################################################################################
+
+# plot the individual df lists
+
+purrr::pmap(
+    list(
+        relabs = relabs_pos_U13C, 
+        ident = names(relabs_pos_U13C)), 
+    plot_labeling_pattern, 
+    here("Output/species_comparison_data_analysis/pos/U13C/"), 
+    by_strain = TRUE, 
+    by_medium = FALSE
+)
+
+purrr::pmap(
+    list(
+        relabs = relabs_pos_113C, 
+        ident = names(relabs_pos_113C)), 
+    plot_labeling_pattern, 
+    here("Output/species_comparison_data_analysis/pos/113C/"), 
+    by_strain = TRUE, 
+    by_medium = FALSE
+)
+
+purrr::pmap(
+    list(
+        relabs = relabs_pos_U13C113C, 
+        ident = names(relabs_pos_U13C113C)), 
+    plot_labeling_pattern, 
+    here("Output/species_comparison_data_analysis/pos/U13C113C/"), 
+    by_strain = TRUE, 
+    by_medium = FALSE
+)
+
+purrr::pmap(
+    list(
+        relabs = relabs_neg_U13C, 
+        ident = names(relabs_neg_U13C)), 
+    plot_labeling_pattern, 
+    here("Output/species_comparison_data_analysis/neg/U13C/"), 
+    by_strain = TRUE, 
+    by_medium = FALSE
+)
+
+purrr::pmap(
+    list(
+        relabs = relabs_neg_113C, 
+        ident = names(relabs_neg_113C)), 
+    plot_labeling_pattern, 
+    here("Output/species_comparison_data_analysis/neg/113C/"), 
+    by_strain = TRUE, 
+    by_medium = FALSE
+)
+
+purrr::pmap(
+    list(
+        relabs = relabs_neg_U13C113C, 
+        ident = names(relabs_neg_U13C113C)), 
+    plot_labeling_pattern, 
+    here("Output/species_comparison_data_analysis/neg/U13C113C/"), 
+    by_strain = TRUE, 
+    by_medium = FALSE
+)
+
+```
+
+## Plot percentage of labeled carbon
+
+```{r}
+# plot cosine similarities
+
+dir.create(file.path(here("Output/species_comparison_data_analysis/perc_carb/")), showWarnings = FALSE)
+
+# quantify the percentage of metabolites with less than 90% of all carbon labeled in U13C condition
+
+perc_above80 <- perc_lab_carb %>% 
+  filter(medium == "U13C") %>% 
+  group_by(strain) %>% 
+  summarise(perc_above80 = sum(perc_labeled > 0.8) / n())
+
+mean_perc_lab_carb <- perc_lab_carb %>% 
+  filter(medium == "U13C") %>% 
+  group_by(strain) %>% 
+  summarise(perc_above80 = mean(perc_labeled))
+
+
+plot_perc_carb(
+    df = perc_lab_carb %>% filter(medium == "U13C"), 
+    ref = "Ecoli", 
+    comp = "Buni", 
+    title = "perc_carb_Ecoli_Buni_U13C.pdf", 
+    output_dir = here("Output/species_comparison_data_analysis/perc_carb/")
+    
+)
+
+plot_perc_carb(
+    df = perc_lab_carb %>% filter(medium == "113C"), 
+    ref = "Ecoli", 
+    comp = "Buni", 
+    title = "perc_carb_Ecoli_Buni_113C.pdf", 
+    output_dir = here("Output/species_comparison_data_analysis/perc_carb/")
+    
+)
+
+plot_perc_carb(
+    df = perc_lab_carb %>% filter(medium == "U13C113C"), 
+    ref = "Ecoli", 
+    comp = "Buni", 
+    title = "perc_carb_Ecoli_Buni_U13C113C.pdf", 
+    output_dir = here("Output/species_comparison_data_analysis/perc_carb/")
+    
+)
+
+plot_perc_carb(
+    df = perc_lab_carb %>% filter(medium == "U13C"), 
+    ref = "Ecoli", 
+    comp = "Pvul", 
+    title = "perc_carb_Ecoli_Pvul_U13C.pdf", 
+    output_dir = here("Output/species_comparison_data_analysis/perc_carb/")
+    
+)
+
+plot_perc_carb(
+    df = perc_lab_carb %>% filter(medium == "113C"), 
+    ref = "Ecoli", 
+    comp = "Pvul", 
+    title = "perc_carb_Ecoli_Pvul_113C.pdf", 
+    output_dir = here("Output/species_comparison_data_analysis/perc_carb/")
+    
+)
+
+plot_perc_carb(
+    df = perc_lab_carb %>% filter(medium == "U13C113C"), 
+    ref = "Ecoli", 
+    comp = "Pvul", 
+    title = "perc_carb_Ecoli_Pvul_U13C113C.pdf", 
+    output_dir = here("Output/species_comparison_data_analysis/perc_carb/")
+    
+)
+```
+
+## Plot cosine similarity
+
+```{r}
+
+dir.create(file.path(here("Output/species_comparison_data_analysis/cosine_sim/")), showWarnings = FALSE)
+
+plot_cosine_similarities_scatterplot(
+    df = cosine_sim %>% filter(medium == "U13C"), 
+    x = "Buni", 
+    y = "Pvul", 
+    title = "cosine_sim_U13C.pdf", 
+    output_dir = here("Output/species_comparison_data_analysis/cosine_sim/"), 
+    x_str = "B. uniformis",
+    y_str = "P. vulgatus"
+)
+
+plot_cosine_similarities_scatterplot(
+    df = cosine_sim %>% filter(medium == "113C"), 
+    x = "Buni", 
+    y = "Pvul", 
+    title = "cosine_sim_113C.pdf", 
+    output_dir = here("Output/species_comparison_data_analysis/cosine_sim/"), 
+    x_str = "B. uniformis",
+    y_str = "P. vulgatus"
+)
+
+plot_cosine_similarities_scatterplot(
+    df = cosine_sim %>% filter(medium == "U13C113C"), 
+    x = "Buni", 
+    y = "Pvul", 
+    title = "cosine_sim_U13C113C.pdf", 
+    output_dir = here("Output/species_comparison_data_analysis/cosine_sim/"), 
+    x_str = "B. uniformis",
+    y_str = "P. vulgatus"
+)
+
+```
+
+## Extract labeling patterns for modeling
+
+```{r}
+
+dir.create(file.path(here("Output/species_comparison_data_analysis/13CMFA/")), showWarnings = FALSE)
+
+# extract_patterns_for_modeling <- function(df, m0_threshold = NA, m0_group, remove_notinall_groups = TRUE)
+
+patterns_for_modeling <- extract_patterns_for_modeling(
+    relabs_filtered_remdup
+) %>%
+  arrange(identifier, strain, medium, as.numeric(str_extract(isot_model_name, "\\d+$")))
+
+
+# read in Buni model to select features present in the Buni model (all feats in the Buni model are also in the Ecoli model)
+
+buni_model <- read_tsv(here("Models/Buniformis/Buniformis_individualBiomass.tsv")) 
+colnames(buni_model) <- c("reaction_id", "substrate", "product", "reversibility")
+subs <- pull(buni_model, substrate) %>% strsplit("\\+") %>% unlist() %>% gsub("\\(.*", "", .)
+prods <- pull(buni_model, product) %>% strsplit("\\+") %>% unlist() %>% gsub("\\(.*", "", .)
+all <- c(subs, prods) %>% unique()
+
+patterns_in_model <- patterns_for_modeling %>% filter(grepl(paste(all, collapse = "|") , isot_model_name))
+write_csv(patterns_for_modeling %>% filter(medium == "U13C"), here("Output/species_comparison_data_analysis/13CMFA/labeling_patterns_Glc_100_U13C.csv"))
+write_csv(patterns_for_modeling %>% filter(medium == "113C"), here("Output/species_comparison_data_analysis/13CMFA/labeling_patterns_Glc_100_113C.csv"))
+write_csv(patterns_for_modeling %>% filter(medium == "U13C113C"), here("Output/species_comparison_data_analysis/13CMFA/labeling_patterns_Glc_50_U13C_50_113C.csv"))
+
+```
+
+

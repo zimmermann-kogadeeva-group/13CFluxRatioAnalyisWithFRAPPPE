@@ -1,0 +1,359 @@
+# Summary
+
+In this vignette, I perform all analyses for the co-feeding comparison section. Functions are provided in the process13C.R file.
+First, I process the output from compound discoverer 3.4. Next, I filter features and last, I plot labeling patterns, percentage 
+of total labeled carbon, cosine similarities of labeling patterns. Last, I export data for the usage of modeling.
+
+## Data processing
+
+```{r}
+
+library("tidyverse")
+library("here")
+source(here("Scripts/process13C.R"))
+
+dir.create(file.path(here("Output/Buni_cofeed_comparison_data_analysis/")), showWarnings = FALSE)
+
+
+################## # negative
+
+path_to_CD34_output = here("Data/Buni_cofeed_comparison_data_analysis/20250822_Buni_cofeed_comparison_data_analysis/Negative/DBT003V5_20251023_CD34/Compounds_nested_20260226.xlsx") 
+path_to_metadata = here("Data/Buni_cofeed_comparison_data_analysis/20250822_Buni_cofeed_comparison_data_analysis/Negative/DBT003V5_20251023_CD34/metadata_neg.csv")
+path_to_annotation_corrections = here("Data/Buni_cofeed_comparison_data_analysis/20250822_Buni_cofeed_comparison_data_analysis/Negative/DBT003V5_20251023_CD34/annotation_corrections_neg.csv")
+rts = read_csv(here("Data/Buni_cofeed_comparison_data_analysis/20250822_Buni_cofeed_comparison_data_analysis/Negative/DBT003V5_20251023_CD34/mcf_rt_neg.csv"))
+
+
+relabs_neg <- format_CD34_output(
+    path_to_CD34_output,
+    path_to_metadata, 
+    path_to_annotation_corrections
+)
+
+# write_csv(pivot_wider_fortables(relabs_neg, "neg"), here("Output/Buni_cofeed_comparison_data_analysis/neg/relabs_unfiltered.csv"))
+
+relabs_filtered_neg <- relabs_neg %>% 
+    filter((strain != "VBDBT") | (strain == "VBDBT" & medium == "Glucose")) %>% # only keep VBDBT glucose blanks
+    filter(medium != "Ribose") %>% 
+    filter(strain != "QC")
+
+write_csv(pivot_wider_fortables(relabs_filtered_neg, "neg"), here("Output/Buni_cofeed_comparison_data_analysis/neg/relabs_unfiltered.csv"))
+
+relabs_filtered_neg <- relabs_filtered_neg %>% 
+    filter_background(., 3) %>% 
+    group_by(identifier, strain, medium) %>%
+    filter_nobs(., 3) %>% 
+    filter_MS2() %>% 
+    filter_rtlib(., rts) %>%
+    add_mslvl() %>%
+    ungroup() %>%
+    filter_sd(., 0.3, group_by_medium = TRUE, group_by_strain = TRUE) # here, the user can decide how he wants to group. As I want to compare predictors across glucose conditions and species, I keep all isotopologues the same for all conditions
+
+# plot individual compounds labeling patterns
+
+
+
+############### # positive
+path_to_CD34_output = here("Data/Buni_cofeed_comparison_data_analysis/20250822_Buni_cofeed_comparison_data_analysis/Positive/DBT003V5_20251023_CD34/Compounds_nested_20260226.xlsx") 
+path_to_metadata = here("Data/Buni_cofeed_comparison_data_analysis/20250822_Buni_cofeed_comparison_data_analysis/Positive/DBT003V5_20251023_CD34/metadata_pos.csv")
+path_to_annotation_corrections = here("Data/Buni_cofeed_comparison_data_analysis/20250822_Buni_cofeed_comparison_data_analysis/Positive/DBT003V5_20251023_CD34/annotation_corrections_pos.csv")
+rts = read_csv(here("Data/Buni_cofeed_comparison_data_analysis/20250822_Buni_cofeed_comparison_data_analysis/Positive/DBT003V5_20251023_CD34/mcf_rt_pos.csv"))
+
+relabs_pos <- format_CD34_output(
+    path_to_CD34_output,
+    path_to_metadata
+)
+# 
+# write_csv(pivot_wider_fortables(relabs_pos, "pos"), here("Output/Buni_cofeed_comparison_data_analysis/pos/relabs_unfiltered.csv"))
+
+relabs_filtered_pos <- relabs_pos %>% 
+    filter((strain != "VBDBT") | (strain == "VBDBT" & medium == "Glucose")) %>% # only keep VBDBT
+    filter(medium != "Ribose") %>% 
+    filter(strain != "QC")
+
+write_csv(pivot_wider_fortables(relabs_filtered_pos, "pos"), here("Output/Buni_cofeed_comparison_data_analysis/pos/relabs_unfiltered.csv"))
+
+relabs_filtered_pos <- relabs_filtered_pos %>%
+    filter_background(., 3) %>% 
+    group_by(identifier, strain, medium) %>%
+    filter_nobs(., 3) %>% 
+    filter_MS2() %>% 
+    filter_rtlib(., rts) %>%
+    add_mslvl() %>%
+    ungroup() %>%
+    filter_sd(., 0.3, group_by_medium = TRUE, group_by_strain = TRUE) # here, the user can decide how he wants to group. As I want to compare predictors across glucose conditions and species, I keep all isotopologues the same for all conditions
+
+# bind positive and negative together
+
+relabs_filtered <- bind_neg_pos(relabs_filtered_neg, relabs_filtered_pos)
+relabs_filtered_markeddup <- identify_duplicate_feats(relabs_filtered)
+relabs_filtered_remdup <- filter(relabs_filtered_markeddup, marked_duplicate == FALSE)
+
+write_csv(pivot_wider_fortables(relabs_filtered_remdup), here("Output/Buni_cofeed_comparison_data_analysis/relabs_filtered_joint.csv"))
+
+perc_lab_carb <- calc_perc_lab_carb(relabs_filtered_remdup)
+cosine_sim <- calc_cosine_similarity(relabs_filtered_remdup, ref_medium = "Glucose")
+
+# extract features for metabolights
+
+relabs_filtered_remdup %>% 
+  select(identifier, rt_min, Formula, delta_ppm, mode) %>% 
+  unique() %>% 
+  separate_wider_delim(identifier, delim = "_", names = c("name", "mz", "rt"), too_many = "debug") %>% 
+  mutate(experiment = "cofeed_comparison") %>% 
+  write_csv(here("Output/Buni_cofeed_comparison_data_analysis/features_for_metabolights.csv"))
+
+
+```
+
+## plot Co-feeding labeling patterns
+
+```{r}
+
+# plot individual feature isotopologues
+
+# turn df into list of sub-dfs by identifier, extract identifier
+
+relabs_pos_Buni <- filter(relabs_filtered_pos, strain == "Buni")
+relabs_pos_Buni <- split(relabs_pos_Buni, relabs_pos_Buni$identifier)
+relabs_pos_Pvul <- filter(relabs_filtered_pos, strain == "Pvul")
+relabs_pos_Pvul <- split(relabs_pos_Pvul, relabs_pos_Pvul$identifier)
+# create folders
+
+dir.create(file.path(here("Output/Buni_cofeed_comparison_data_analysis/pos/")), showWarnings = FALSE)
+dir.create(file.path(here("Output/Buni_cofeed_comparison_data_analysis/pos/Buni/")), showWarnings = FALSE)
+dir.create(file.path(here("Output/Buni_cofeed_comparison_data_analysis/pos/Pvul/")), showWarnings = FALSE)
+
+# plot the individual df lists
+
+purrr::pmap(
+    list(
+        relabs = relabs_pos_Buni, 
+        ident = names(relabs_pos_Buni)), 
+    plot_labeling_pattern, 
+    here("Output/Buni_cofeed_comparison_data_analysis/pos/Buni/"), 
+    by_strain = FALSE, 
+    by_medium = TRUE
+)
+
+purrr::pmap(
+    list(
+        relabs = relabs_pos_Pvul, 
+        ident = names(relabs_pos_Pvul)), 
+    plot_labeling_pattern, 
+    here("Output/Buni_cofeed_comparison_data_analysis/pos/Pvul/"), 
+    by_strain = FALSE, 
+    by_medium = TRUE
+)
+
+
+# do the same for negatives
+
+relabs_neg_Buni <- filter(relabs_filtered_neg, strain == "Buni")
+relabs_neg_Buni <- split(relabs_neg_Buni, relabs_neg_Buni$identifier)
+relabs_neg_Pvul <- filter(relabs_filtered_neg, strain == "Pvul")
+relabs_neg_Pvul <- split(relabs_neg_Pvul, relabs_neg_Pvul$identifier)
+# create folders
+
+dir.create(file.path(here("Output/Buni_cofeed_comparison_data_analysis/neg/")), showWarnings = FALSE)
+dir.create(file.path(here("Output/Buni_cofeed_comparison_data_analysis/neg/Buni/")), showWarnings = FALSE)
+dir.create(file.path(here("Output/Buni_cofeed_comparison_data_analysis/neg/Pvul/")), showWarnings = FALSE)
+
+# plot the individual df lists
+
+purrr::pmap(
+    list(
+        relabs = relabs_neg_Buni, 
+        ident = names(relabs_neg_Buni)), 
+    plot_labeling_pattern, 
+    here("Output/Buni_cofeed_comparison_data_analysis/neg/Buni/"), 
+    by_strain = FALSE, 
+    by_medium = TRUE
+)
+
+purrr::pmap(
+    list(
+        relabs = relabs_neg_Pvul, 
+        ident = names(relabs_neg_Pvul)), 
+    plot_labeling_pattern, 
+    here("Output/Buni_cofeed_comparison_data_analysis/neg/Pvul/"), 
+    by_strain = FALSE, 
+    by_medium = TRUE
+)
+
+```
+
+## plot percentage of carbon
+
+```{r}
+
+# plot percentage of carbon
+
+dir.create(file.path(here("Output/Buni_cofeed_comparison_data_analysis/perc_carb/")), showWarnings = FALSE)
+
+plot_perc_carb(
+    df = perc_lab_carb %>% filter(strain == "Buni"), 
+    ref = "Glucose", 
+    comp = "Adenosine", 
+    title = "perc_carb_Buni_Glc_Ade.pdf", 
+    output_dir = here("Output/Buni_cofeed_comparison_data_analysis/perc_carb/")
+    
+)
+
+plot_perc_carb(
+    df = perc_lab_carb %>% filter(strain == "Buni"), 
+    ref = "Glucose", 
+    comp = "Cytidine", 
+    title = "perc_carb_Buni_Glc_Cyt.pdf", 
+    output_dir = here("Output/Buni_cofeed_comparison_data_analysis/perc_carb/")
+    
+)
+
+plot_perc_carb(
+    df = perc_lab_carb %>% filter(strain == "Buni"), 
+    ref = "Glucose", 
+    comp = "Thymidine", 
+    title = "perc_carb_Buni_Glc_Thy.pdf", 
+    output_dir = here("Output/Buni_cofeed_comparison_data_analysis/perc_carb/")
+    
+)
+
+plot_perc_carb(
+    df = perc_lab_carb %>% filter(strain == "Buni"), 
+    ref = "Glucose", 
+    comp = "Uridine", 
+    title = "perc_carb_Buni_Glc_Uri.pdf", 
+    output_dir = here("Output/Buni_cofeed_comparison_data_analysis/perc_carb/")
+    
+)
+
+plot_perc_carb(
+    df = perc_lab_carb %>% filter(strain == "Pvul"), 
+    ref = "Glucose", 
+    comp = "Adenosine", 
+    title = "perc_carb_Pvul_Glc_Ade.pdf", 
+    output_dir = here("Output/Buni_cofeed_comparison_data_analysis/perc_carb/")
+    
+)
+
+plot_perc_carb(
+    df = perc_lab_carb %>% filter(strain == "Pvul"), 
+    ref = "Glucose", 
+    comp = "Cytidine", 
+    title = "perc_carb_Pvul_Glc_Cyt.pdf", 
+    output_dir = here("Output/Buni_cofeed_comparison_data_analysis/perc_carb/")
+    
+)
+
+plot_perc_carb(
+    df = perc_lab_carb %>% filter(strain == "Pvul"), 
+    ref = "Glucose", 
+    comp = "Thymidine", 
+    title = "perc_carb_Pvul_Glc_Thy.pdf", 
+    output_dir = here("Output/Buni_cofeed_comparison_data_analysis/perc_carb/")
+    
+)
+
+plot_perc_carb(
+    df = perc_lab_carb %>% filter(strain == "Pvul"), 
+    ref = "Glucose", 
+    comp = "Uridine", 
+    title = "perc_carb_Pvul_Glc_Uri.pdf", 
+    output_dir = here("Output/Buni_cofeed_comparison_data_analysis/perc_carb/")
+    
+)
+
+```
+
+## plot cosine similarity
+
+```{r}
+
+# plot cosine similarity
+
+dir.create(file.path(here("Output/Buni_cofeed_comparison_data_analysis/cosine_sim/")), showWarnings = FALSE)
+
+plot_cosine_similarities_boxplot(
+    cosine_sim = cosine_sim %>% filter(strain == "Buni" & medium != "Glucose"), 
+    comp = "medium", 
+    title = "cosine_sim_Buni.pdf", 
+    output_dir = here("Output/Buni_cofeed_comparison_data_analysis/cosine_sim/")
+)
+
+plot_cosine_similarities_boxplot(
+    cosine_sim = cosine_sim %>% filter(strain == "Pvul" & medium != "Glucose"), 
+    comp = "medium", 
+    title = "cosine_sim_Pvul.pdf", 
+    output_dir = here("Output/Buni_cofeed_comparison_data_analysis/cosine_sim/")
+)
+
+# plot carb perc between strains
+
+
+plot_perc_carb(
+    df = perc_lab_carb %>% filter(medium == "Glucose"), 
+    ref = "Buni",
+    comp = "Pvul", 
+    title = "perc_carb_Glc_Buni_Pvul.pdf", 
+    output_dir = here("Output/Buni_cofeed_comparison_data_analysis/perc_carb/")
+    
+)
+
+plot_perc_carb(
+    df = perc_lab_carb %>% filter(medium == "Adenosine"), 
+    ref = "Buni",
+    comp = "Pvul", 
+    title = "perc_carb_Ade_Buni_Pvul.pdf", 
+    output_dir = here("Output/Buni_cofeed_comparison_data_analysis/perc_carb/")
+    
+)
+
+plot_perc_carb(
+    df = perc_lab_carb %>% filter(medium == "Cytidine"), 
+    ref = "Buni",
+    comp = "Pvul", 
+    title = "perc_carb_Cyt_Buni_Pvul.pdf", 
+    output_dir = here("Output/Buni_cofeed_comparison_data_analysis/perc_carb/")
+    
+)
+
+plot_perc_carb(
+    df = perc_lab_carb %>% filter(medium == "Thymidine"), 
+    ref = "Buni",
+    comp = "Pvul", 
+    title = "perc_carb_Thy_Buni_Pvul.pdf", 
+    output_dir = here("Output/Buni_cofeed_comparison_data_analysis/perc_carb/")
+    
+)
+
+plot_perc_carb(
+    df = perc_lab_carb %>% filter(medium == "Uridine"), 
+    ref = "Buni",
+    comp = "Pvul", 
+    title = "perc_carb_Uri_Buni_Pvul.pdf", 
+    output_dir = here("Output/Buni_cofeed_comparison_data_analysis/perc_carb/")
+    
+)
+
+
+
+```
+
+## Export labeling data for modeling
+
+```{r}
+
+dir.create(file.path(here("Output/Buni_cofeed_comparison_data_analysis/13CMFA/")), showWarnings = FALSE)
+
+patterns_for_modeling <- extract_patterns_for_modeling(
+    relabs_filtered_remdup
+) %>%
+  arrange(identifier, strain, medium, as.numeric(str_extract(isot_model_name, "\\d+$")))
+
+
+# read in Buni model to select features present in the Buni model (all feats in the Buni model are also in the Ecoli model)
+
+write_csv(patterns_for_modeling %>% filter(strain == "Buni"), here("Output/Buni_cofeed_comparison_data_analysis/13CMFA/labeling_patterns_Buni.csv"))
+write_csv(patterns_for_modeling %>% filter(strain == "Pvul"), here("Output/Buni_cofeed_comparison_data_analysis/13CMFA/labeling_patterns_Pvul.csv"))
+
+
+```
