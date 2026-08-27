@@ -61,7 +61,6 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/packaging-26.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/plotly-6.5.2-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/tzdata-2025b-h78e105d_0.conda
-      - pypi: /home/bartosz/Documents/Heidelberg/EMBL/Bioinformatician/Software/Packages/Frapppe
       - pypi: https://files.pythonhosted.org/packages/00/c0/8f5d070730d7836adc9c9b6408dec68c6ced86b304a9b26a14df072a6e8c/traitlets-5.14.3-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/03/49/d10027df9fce941cb8184e78a02857af36360d33e1721df81c5ed2179a1a/async_lru-2.0.5-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/04/4b/29cac41a4d98d144bf5f6d33995617b185d14b22401f75ca86f384e87ff1/h11-0.16.0-py3-none-any.whl
@@ -83,6 +82,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/1e/e8/685f47e0d754320684db4425a0967f7d3fa70126bffd76110b7009a0090f/joblib-1.5.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/1f/10/5fe7a7778cc8a701373662f99393f443541353018d3cf2bf6c8f91b032d6/depinfo-2.2.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/1f/fd/ac0979ebd1b1975c266c99b96930b0a66609c3f6e5d76979ca6eb3073896/jupyterlab-4.4.9-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/21/d9/8f7b024e10ca78f57f51ebe9aa27be26a7e0f6a2dbe3fce97d348dfa3b46/frapppe-0.1.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/22/a6/858897256d0deac81a172289110f31629fc4cee19b6f01283303e18c8db3/ptyprocess-0.7.0-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/23/cd/066e86230ae37ed0be70aae89aabf03ca8d9f39c8aea0dec8029455b5540/opt_einsum-3.4.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/25/7a/b0178788f8dc6cafce37a212c99565fa1fe7872c70c6c9c1e1a372d9d88f/rich-14.2.0-py3-none-any.whl
@@ -819,22 +819,6 @@ packages:
   purls: []
   size: 122968
   timestamp: 1742727099393
-- pypi: /home/bartosz/Documents/Heidelberg/EMBL/Bioinformatician/Software/Packages/Frapppe
-  name: frapppe
-  requires_dist:
-  - hopsy>=1.6.1
-  - freeflux>=0.3.6
-  - jax>=0.4
-  - pandas>=1.5.1
-  - matplotlib>=3.7.0
-  - seaborn>=0.13.2
-  - scikit-learn>=1.6.1
-  - mkdocs>=1.6 ; extra == 'docs'
-  - mkdocs-material>=9.5 ; extra == 'docs'
-  - mkdocs-jupyter>=0.25 ; extra == 'docs'
-  - mkdocstrings[python]>=0.26 ; extra == 'docs'
-  - black>=25.1.0 ; extra == 'docs'
-  requires_python: '>=3.9'
 - pypi: https://files.pythonhosted.org/packages/00/c0/8f5d070730d7836adc9c9b6408dec68c6ced86b304a9b26a14df072a6e8c/traitlets-5.14.3-py3-none-any.whl
   name: traitlets
   version: 5.14.3
@@ -1113,6 +1097,24 @@ packages:
   - pydantic<3.0 ; extra == 'upgrade-extension'
   - pyyaml-include<3.0 ; extra == 'upgrade-extension'
   - tomli-w<2.0 ; extra == 'upgrade-extension'
+  requires_python: '>=3.9'
+- pypi: https://files.pythonhosted.org/packages/21/d9/8f7b024e10ca78f57f51ebe9aa27be26a7e0f6a2dbe3fce97d348dfa3b46/frapppe-0.1.1-py3-none-any.whl
+  name: frapppe
+  version: 0.1.1
+  sha256: d379afb22c2f4010ae7f353c8b8502db879c68d355e5c6b7abee5fb6e0e83500
+  requires_dist:
+  - hopsy>=1.6.1
+  - freeflux>=0.3.6
+  - jax>=0.4
+  - pandas>=1.5.1
+  - matplotlib>=3.7.0
+  - seaborn>=0.13.2
+  - scikit-learn>=1.6.1
+  - mkdocs>=1.6 ; extra == 'docs'
+  - mkdocs-material>=9.5 ; extra == 'docs'
+  - mkdocs-jupyter>=0.25 ; extra == 'docs'
+  - mkdocstrings[python]>=0.26 ; extra == 'docs'
+  - black>=25.1.0 ; extra == 'docs'
   requires_python: '>=3.9'
 - pypi: https://files.pythonhosted.org/packages/22/a6/858897256d0deac81a172289110f31629fc4cee19b6f01283303e18c8db3/ptyprocess-0.7.0-py2.py3-none-any.whl
   name: ptyprocess

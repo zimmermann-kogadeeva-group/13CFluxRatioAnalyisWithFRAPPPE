@@ -25,4 +25,4 @@ polyround = ">=0.4.0, <0.5"
 seaborn = ">=0.13.2, <0.14"
 ipympl = ">=0.9.8, <0.10"
 shap = ">=0.49.1, <0.50"
-frapppe = { path = "/home/bartosz/Documents/Heidelberg/EMBL/Bioinformatician/Software/Packages/Frapppe", editable = true }
+frapppe = ">=0.1.1, <0.2"
