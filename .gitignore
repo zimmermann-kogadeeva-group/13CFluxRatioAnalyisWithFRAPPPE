@@ -1,0 +1,5 @@
+.envrc
+.exclude
+.cache/
+.jupyter.log
+.ipynb_checkpoints/

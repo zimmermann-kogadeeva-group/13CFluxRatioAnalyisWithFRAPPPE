@@ -1,0 +1,129 @@
+#reaction_ID	substrate_IDs(atom)	product_IDs(atom)	reversibility
+#Glycolysis			
+pgi	G6P(abcdef)	F6P(abcdef)	1.0
+pfk	F6P(abcdef)	FBP(abcdef)	0.0
+fba	FBP(abcdef)	DHAP(cba)+GAP(def)	1.0
+tpi	DHAP(abc)	GAP(abc)	1.0
+gapdh	GAP(abc)	G3P(abc)	1.0
+eno	G3P(abc)	PEP(abc)	1.0
+pk	PEP(abc)	Pyr(abc)	0.0
+ldh	Pyr(abc)	Lac(abc)	0.0
+#Pentose phosphate pathway			
+g6pdh	G6P(abcdef)	PGluc(abcdef)	0.0
+gnd	PGluc(abcdef)	Ru5P(bcdef)+CO2(a)	0.0
+rpe	Ru5P(abcde)	X5P(abcde)	1.0
+rpi	Ru5P(abcde)	R5P(abcde)	1.0
+TK1	X5P(abcde)+R5P(fghij)	GAP(cde)+S7P(abfghij)	1.0
+TK2	R5P(abcde)+E4P(fghi)	GAP(cde)+F6P(abfghi)	1.0
+TA	S7P(abcdefg)+GAP(hij)	E4P(defg)+F6P(abchij)	1.0
+#TCA cycle oxidative branch			
+pdh	Pyr(abc)	AcCoA(bc)+CO2(a)	1.0
+cs	OAA(abcd)+AcCoA(ef)	Cit(efbcda)	0.0
+can	Cit(abcdef)	ICit(abcdef)	1.0
+icd	ICit(abcdef)	AKG(abcde)+CO2(f)	1.0
+#TCA cycle reductive branch			
+mdh	OAA(abcd)	Mal(abcd)	1.0
+fum	Mal(abcd)	Fum(abcd,dcba)	1.0
+sdh	Fum(abcd,dcba)	Suc(abcd,dcba)	0.0
+suc	Suc(abcd,dcba)	SucCoA(abcd)	1.0
+kdh	SucCoA(bcde)+CO2(a)	AKG(abcde)	1.0
+#Amphibolic reactions			
+me	Mal(abcd)	Pyr(abc)+CO2(d)	1.0
+pyc	PEP(abc)+CO2(d)	OAA(abcd)	1.0
+pc	Pyr(abc)+CO2(d)	OAA(abcd)	0.0
+oad	OAA(abcd)	Pyr(abc)+CO2(d)	0.0
+#One carbon reactions			
+ocm1	MEETHF(a)	METHF(a)	0.0
+ocm2	MEETHF(a)	FTHF(a)	0.0
+#Acetic acid formation			
+AcCoAAc	AcCoA(ab)	Ac(ab)	0.0
+#Transport			
+glk	Glc.ex(abcdef)	G6P(abcdef)	0.0
+co2out	CO2(a)	CO2.ex(a)	0.0
+co2in	CO2.in(a)	CO2(a)	0.0
+sucout	Suc(abcd,dcba)	Suc.ex(abcd,dcba)	0.0
+lacout	Lac(abc)	Lac.ex(abc)	0.0
+fumout	Fum(abcd,dcba)	Fum.ex(abcd,dcba)	0.0
+malout	Mal(abcd)	Mal.ex(abcd)	0.0
+acout	Ac(ab)	Ac.ex(ab)	0.0
+#ACALDout	ACALD(ab)	ACALD.ex(ab)	0.0
+URIin	URI.ex(abcdefghi)	URI(abcdefghi)	0.0
+#Biomass formation			
+#Biomass reactions			
+G6Pbm	G6P(abcdef)	G6Pbm(abcdef)	0.0
+F6Pbm	F6P(abcdef)	F6Pbm(abcdef)	0.0
+R5Pbm	R5P(abcde)	R5Pbm(abcde)	0.0
+GAPbm	GAP(abc)	GAPbm(abc)	0.0
+G3Pbm	G3P(abc)	G3Pbm(abc)	0.0
+AcCoAbm	AcCoA(ab)	AcCoAbm(ab)	0.0
+MEETHFbm	MEETHF(a)	MEETHFbm(a)	0.0
+PEPbm	PEP(abc)	PEPbm(abc)	0.0
+PYRbm	Pyr(abc)	Pyrbm(abc)	0.0
+OGAbm	AKG(abcde)	AKGbm(abcde)	0.0
+OAAbm	OAA(abcd)	OAAbm(abcd)	0.0
+E4Pbm	E4P(abcd)	E4Pbm(abcd)	0.0
+glubm	Glu(abcde)	Glubm(abcde)	0.0
+glnbm	Gln(abcde)	Glnbm(abcde)	0.0
+probm	Pro(abcde)	Probm(abcde)	0.0
+argbm	Arg(abcdef)	Argbm(abcdef)	0.0
+aspbm	Asp(abcd)	Aspbm(abcd)	0.0
+asnbm	Asn(abcd)	Asnbm(abcd)	0.0
+alabm	Ala(abc)	Alabm(abc)	0.0
+serbm	Ser(abc)	Serbm(abc)	0.0
+glybm	Gly(ab)	Glybm(ab)	0.0
+cysbm	Cys(abc)	Cysbm(abc)	0.0
+lysbm	Lys(abcdef)	Lysbm(abcdef)	0.0
+thrbm	Thr(abcd)	Thrbm(abcd)	0.0
+metbm	Met(abcde)	Metbm(abcde)	0.0
+valbm	Val(abcde)	Valbm(abcde)	0.0
+leubm	Leu(abcdef)	Leubm(abcdef)	0.0
+ilebm	Ile(abcdef)	Ilebm(abcdef)	0.0
+phebm	Phe(abcdefghi)	Phebm(abcdefghi)	0.0
+tyrbm	Tyr(abcdefghi)	Tyrbm(abcdefghi)	0.0
+trpbm	Trp(abcdefghijk)	Trpbm(abcdefghijk)	0.0
+hisbm	His(abcdef)	Hisbm(abcdef)	0.0
+urabm	URA(abcd)	URAbm(abcd)	0.0
+umpbm	UMP(abcdefghi)	UMPbm(abcdefghi)	0.0
+uribm	URI(abcdefghi)	URIbm(abcdefghi)	0.0
+ribbm	RIB(abcde)	RIBbm(abcde)	0.0
+udpbm	UDP(abcdefghi)	UDPbm(abcdefghi)	0.0
+#Amino acid biosynthesis			
+gdh	AKG(abcde)	Glu(abcde)	0.0
+gs	Glu(abcde)	Gln(abcde)	0.0
+pro	Glu(abcde)	Pro(abcde)	0.0
+arg	Glu(abcde)+CO2(f)+Gln(ghijk)+Asp(lmno)+AcCoA(pq)	Arg(abcdef)+AKG(ghijk)+Fum(lmno)+Ac(pq)	0.0
+asp	OAA(abcd)+Glu(efghi)	Asp(abcd)+AKG(efghi)	0.0
+asn	Asp(abcd)	Asn(abcd)	0.0
+ala	Pyr(abc)+Glu(defgh)	Ala(abc)+AKG(defgh)	0.0
+ser	G3P(abc)+Glu(defgh)	Ser(abc)+AKG(defgh)	0.0
+gly1	Ser(abc)	Gly(ab)+MEETHF(c)	1.0
+gldc	Gly(ab)	CO2(a)+MEETHF(b)	1.0
+cys	Ser(abc)+AcCoA(de)	Cys(abc)+Ac(de)	0.0
+lys1	Asp(abcd)+Pyr(efg)+Glu(hijkl)+SucCoA(mnop)	LLDAP(abcdgfe)+AKG(hijkl)+Suc(mnop,ponm)	0.0
+lys2	LLDAP(abcdefg)	Lys(abcdef)+CO2(g)	0.0
+thr	Asp(abcd)	Thr(abcd)	0.0
+met	Asp(abcd)+METHF(e)+Cys(fgh)+SucCoA(ijkl)	Met(abcde)+Pyr(fgh)+Suc(ijkl,lkji)	0.0
+val	Pyr(abc)+Pyr(def)+Glu(ghijk)	Val(abcef)+CO2(d)+AKG(ghijk)	0.0
+leu	AcCoA(ab)+Pyr(cde)+Pyr(fgh)+Glu(ijklm)	Leu(abdghe)+CO2(c)+CO2(f)+AKG(ijklm)	0.0
+ile	Thr(abcd)+Pyr(efg)+Glu(hijkl)	Ile(abfcdg)+CO2(e)+AKG(hijkl)	0.0
+phe	PEP(abc)+PEP(def)+E4P(ghij)+Glu(klmno)	Phe(abcefghij)+CO2(d)+AKG(klmno)	0.0
+tyr	PEP(abc)+PEP(def)+E4P(ghij)+Glu(klmno)	Tyr(abcefghij)+CO2(d)+AKG(klmno)	0.0
+trp	Ser(abc)+R5P(defgh)+PEP(ijk)+E4P(lmno)+PEP(pqr)+Gln(stuvw)	Trp(abcedklmnoj)+CO2(i)+GAP(fgh)+Pyr(pqr)+Glu(stuvw)	0.0
+his	R5P(abcde)+FTHF(f)+Gln(ghijk)+Asp(lmno)	His(edcbaf)+AKG(ghijk)+Fum(lmno)	0.0
+#Nucleoside metabolism			
+#uridine biosynthesis			
+PRPPS	R5P(abcde)	PRPP(edcba)	1.0
+HCO3E	CO2(a)	HCO3(a)	1.0
+CBPS	Gln(abcde)+HCO3(f)	Glu(abcde)+Cbp(f)	0.0
+#ASPCT	Asp(abcd)+Cbp(e)	Orot(abcde)	0.0
+#ORPT	PRPP(abcde)+Orot(fghij)	Orot5P(abcdefghij)	0.0
+OMPDC2	PRPP(abcde)+Asp(fghi)+Cbp(j)	UMP(abcdeghij)+CO2(f)	0.0
+NTD2	UMP(abcdefghi)	URI(abcdefghi)	0.0
+#uridine metabolism			
+URIK1	URI(abcdefghi)	UMP(abcdefghi)	0.0
+PYNP2r	URI(abcdefghi)	R1P(abcde)+URA(fghi)	0.0
+URIH	URI(abcdefghi)	RIB(abcde)+URA(fghi)	0.0
+URIDK	UMP(abcdefghi)	UDP(abcdefghi)	0.0
+#ribose metabolism			
+PPM	R1P(abcde)	R5P(abcde)	1.0
+RBK	RIB(abcde)	R5P(abcde)	0.0

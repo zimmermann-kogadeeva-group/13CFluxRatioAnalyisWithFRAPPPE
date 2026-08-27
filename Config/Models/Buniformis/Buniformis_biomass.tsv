@@ -1,0 +1,74 @@
+#reaction_ID	substrate_IDs(atom)	product_IDs(atom)	reversibility
+#Glycolysis			
+pgi	G6P(abcdef)	F6P(abcdef)	1
+pfk	F6P(abcdef)	FBP(abcdef)	0
+fba	FBP(abcdef)	DHAP(cba)+GAP(def)	1
+tpi	DHAP(abc)	GAP(abc)	1
+gapdh	GAP(abc)	G3P(abc)	1
+eno	G3P(abc)	PEP(abc)	1
+pk	PEP(abc)	Pyr(abc)	0
+ldh	Pyr(abc)	Lac(abc)	0
+#Pentose phosphate pathway			
+g6pdh	G6P(abcdef)	PGluc(abcdef)	0
+gnd	PGluc(abcdef)	Ru5P(bcdef)+CO2(a)	0
+rpe	Ru5P(abcde)	X5P(abcde)	1
+rpi	Ru5P(abcde)	R5P(abcde)	1
+TK1	X5P(abcde)+R5P(fghij)	GAP(cde)+S7P(abfghij)	1
+TK2	R5P(abcde)+E4P(fghi)	GAP(cde)+F6P(abfghi)	1
+TA	S7P(abcdefg)+GAP(hij)	E4P(defg)+F6P(abchij)	1
+#TCA cycle oxidative branch			
+pdh	Pyr(abc)	AcCoA(bc)+CO2(a)	1
+cs	OAA(abcd)+AcCoA(ef)	Cit(efbcda)	0
+can	Cit(abcdef)	ICit(abcdef)	1
+icd	ICit(abcdef)	AKG(abcde)+CO2(f)	1
+# TCA cycle reductive branch			
+mdh	OAA(abcd)	Mal(abcd)	1
+fum	Mal(abcd)	Fum(abcd,dcba)	1
+sdh	Fum(abcd,dcba)	Suc(abcd,dcba)	0
+suc	Suc(abcd,dcba)	SucCoA(abcd)	1
+kdh	SucCoA(bcde)+CO2(a)	AKG(abcde)	1
+#Amphibolic reactions			
+me	Mal(abcd)	Pyr(abc)+CO2(d)	1
+pyc	PEP(abc)+CO2(d)	OAA(abcd)	1
+pc	Pyr(abc)+CO2(d)	OAA(abcd)	0
+oad	OAA(abcd)	Pyr(abc)+CO2(d)	0
+#One carbon reactions			
+ocm1	MEETHF(a)	METHF(a)	0
+ocm2	MEETHF(a)	FTHF(a)	0
+#Acetic acid formation			
+AcCoAAc	AcCoA(ab)	Ac(ab)	0
+#Transport			
+glk	Glc.ex(abcdef)	G6P(abcdef)	0
+co2out	CO2(a)	CO2.ex(a)	0
+co2in	CO2.in(a)	CO2(a)	0
+sucout	Suc(abcd,dcba)	Suc.ex(abcd,dcba)	0
+lacout	Lac(abc)	Lac.ex(abc)	0
+fumout	Fum(abcd,dcba)	Fum.ex(abcd,dcba)	0
+malout	Mal(abcd)	Mal.ex(abcd)	0
+acout	Ac(ab)	Ac.ex(ab)	0
+#Biomass formation			
+biom	0.488Ala+0.281Arg+0.229Asn+0.229Asp+0.087Cys+0.250Glu+0.250Gln+0.582Gly+0.090His+0.276Ile+0.428Leu+0.326Lys+0.146Met+0.176Phe+0.210Pro+0.205Ser+0.241Thr+0.054Trp+0.131Tyr+0.402Val+0.205G6P+0.071F6P+0.754R5P+0.129GAP+0.619G3P+0.051PEP+0.083Pyr+2.510AcCoA+0.087AKG+0.340OAA+0.443MEETHF	39.68Biomass	0.0
+#Amino acid biosynthesis			
+gdh	AKG(abcde)	Glu(abcde)	0
+gs	Glu(abcde)	Gln(abcde)	0
+pro	Glu(abcde)	Pro(abcde)	0
+arg	Glu(abcde)+CO2(f)+Gln(ghijk)+Asp(lmno)+AcCoA(pq)	Arg(abcdef)+AKG(ghijk)+Fum(lmno)+Ac(pq)	0
+asp	OAA(abcd)+Glu(efghi)	Asp(abcd)+AKG(efghi)	0
+asn	Asp(abcd)	Asn(abcd)	0
+ala	Pyr(abc)+Glu(defgh)	Ala(abc)+AKG(defgh)	0
+ser	G3P(abc)+Glu(defgh)	Ser(abc)+AKG(defgh)	0
+gly1	Ser(abc)	Gly(ab)+MEETHF(c)	1
+gldc	Gly(ab)	CO2(a)+MEETHF(b)	1
+gly2	Thr(abcd)	Gly(ab)+AcCoA(cd)	0
+cys	Ser(abc)+AcCoA(de)	Cys(abc)+Ac(de)	0
+lys1	Asp(abcd)+Pyr(efg)+Glu(hijkl)+SucCoA(mnop)	LLDAP(abcdgfe)+AKG(hijkl)+Suc(mnop,ponm)	0
+lys2	LLDAP(abcdefg)	Lys(abcdef)+CO2(g)	0
+thr	Asp(abcd)	Thr(abcd)	0
+met	Asp(abcd)+METHF(e)+Cys(fgh)+SucCoA(ijkl)	Met(abcde)+Pyr(fgh)+Suc(ijkl,lkji)	0
+val	Pyr(abc)+Pyr(def)+Glu(ghijk)	Val(abcef)+CO2(d)+AKG(ghijk)	0
+leu	AcCoA(ab)+Pyr(cde)+Pyr(fgh)+Glu(ijklm)	Leu(abdghe)+CO2(c)+CO2(f)+AKG(ijklm)	0
+ile	Thr(abcd)+Pyr(efg)+Glu(hijkl)	Ile(abfcdg)+CO2(e)+AKG(hijkl)	0
+phe	PEP(abc)+PEP(def)+E4P(ghij)+Glu(klmno)	Phe(abcefghij)+CO2(d)+AKG(klmno)	0
+tyr	PEP(abc)+PEP(def)+E4P(ghij)+Glu(klmno)	Tyr(abcefghij)+CO2(d)+AKG(klmno)	0
+trp	Ser(abc)+R5P(defgh)+PEP(ijk)+E4P(lmno)+PEP(pqr)+Gln(stuvw)	Trp(abcedklmnoj)+CO2(i)+GAP(fgh)+Pyr(pqr)+Glu(stuvw)	0
+his	R5P(abcde)+FTHF(f)+Gln(ghijk)+Asp(lmno)	His(edcbaf)+AKG(ghijk)+Fum(lmno)	0
