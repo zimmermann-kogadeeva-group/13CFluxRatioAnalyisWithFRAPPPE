@@ -18,7 +18,6 @@ narwhals = "==2.24"
 cobra = ">=0.29.1, <0.30"
 diskcache = ">=5.6.3, <6"
 hopsy = ">=1.6.1, <2"
-freeflux = ">=0.3.6, <0.4"
 jax = { version = ">=0.4, <=0.4.18", extras = ["cpu"] }
 jupyterlab = ">=4.4.9, <5"
 pandas = ">=1.5.3, <2"
@@ -28,3 +27,4 @@ ipympl = ">=0.9.8, <0.10"
 shap = ">=0.49.1, <0.50"
 frapppe = ">=0.1.1, <0.2"
 narwhals = "*"
+freeflux = { git = "https://github.com/BartoszBartmanski/freeflux.git", rev = "208ff8d" }
