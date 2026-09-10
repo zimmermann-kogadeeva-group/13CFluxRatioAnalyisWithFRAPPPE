@@ -39,46 +39,49 @@ dir.create(file.path(here("Output/plot_maes_preds/")), showWarnings = FALSE)
 
 # Ecoli predictor MAEs
 
-maes_ecoli <- read_csv(here("Output/species_comparison_flux_ratio_prediction/Ecoli/predictors_w_noise/maes.csv")) %>% 
-    rename("Glucose" = "...1") %>% 
-    pivot_longer(cols = -"Glucose", values_to = "MAE", names_to = "ratio") %>% 
+preds_ecoli <- read_csv(here("Output/species_comparison_flux_ratio_prediction/Ecoli/predictions.csv")) %>% 
+    select(-"...1") %>% 
     mutate(model = "Ecoli")
 
 
-maes_buni <- read_csv(here("Output/species_comparison_flux_ratio_prediction/BuniPvul/predictors_w_noise/maes.csv")) %>% 
-    rename("Glucose" = "...1") %>% 
-    pivot_longer(cols = -"Glucose", values_to = "MAE", names_to = "ratio") %>% 
+preds_buni <- read_csv(here("Output/species_comparison_flux_ratio_prediction/BuniPvul/predictions.csv")) %>% 
+    select(-"...1") %>% 
     mutate(model = "Buni")
 
-all_maes <- bind_rows(maes_ecoli, maes_buni) %>% complete(Glucose, ratio, model)
+all_maes <- bind_rows(preds_ecoli, preds_buni) %>% 
+    complete(condition, flux_ratio, model) %>%
+    select(condition, flux_ratio, model, mae) %>% 
+    unique()
 
 
 best_preds <- all_maes %>% 
-    group_by(ratio, model) %>% 
-    arrange(MAE) %>% 
+    group_by(flux_ratio, model) %>% 
+    arrange(mae) %>% 
     slice_head(n=1) %>% 
-    rename("label" = "MAE")
+    rename("label" = "mae")
+    
 
 maes2 <- all_maes %>% 
-    left_join(best_preds, by = c("Glucose", "ratio", "model")) %>% 
+    left_join(best_preds, by = c("condition", "flux_ratio", "model")) %>% 
     mutate(label = as.character(round(label, 2))) %>% 
     mutate(label = ifelse(is.na(label), "", label)) %>% 
-    mutate(ratio = factor(ratio, levels = rev(levels(factor(all_maes$ratio))))) %>% 
-    mutate(Glucose = factor(
-        Glucose, 
+    mutate(ratio = factor(flux_ratio, levels = rev(levels(factor(all_maes$flux_ratio))))) %>% 
+    mutate(condition = factor(
+        condition, 
         levels = c("Glc_100_U13C", "Glc_100_113C", "Glc_50_U13C_50_113C"), 
         labels = c("100% U13C", "100% 1-13C", "50% U13C 50% 113C"))
     ) %>% 
-    mutate(ratio = gsub("_", " ", ratio))
+    mutate(flux_ratio = gsub("_", " ", flux_ratio))
     
-ggplot(maes2 %>% filter(model == "Ecoli"), aes(y = ratio, x = Glucose, fill = MAE)) + 
+ggplot(maes2 %>% filter(model == "Ecoli"), aes(y = ratio, x = condition, fill = mae)) + 
     geom_tile() + 
     geom_text(aes(label = label,
-                  color = MAE > 0.1)) + 
-    scale_fill_viridis_c(name = "MAE", option = "viridis", direction = -1, limits = c(0,0.27)) +
+                  color = mae > 0.1)) + 
+    scale_fill_viridis_c(name = "mae", option = "viridis", direction = -1, limits = c(0,0.27)) +
     scale_color_manual(values = c("TRUE" = "white",
                                   "FALSE" = "black"),
                        guide = "none") +
+    scale_y_discrete(limits = rev) +
     theme_bw() + 
     facet_wrap(~model) + 
     theme(
@@ -105,14 +108,15 @@ ggsave(
 )
 
    
-ggplot(maes2 %>% filter(model == "Buni"), aes(y = ratio, x = Glucose, fill = MAE)) + 
+ggplot(maes2 %>% filter(model == "Buni"), aes(y = ratio, x = condition, fill = mae)) + 
     geom_tile() + 
     geom_text(aes(label = label,
-                  color = MAE > 0.1)) + 
-    scale_fill_viridis_c(name = "MAE", option = "viridis", direction = -1, limits = c(0,0.27)) +
+                  color = mae > 0.1)) + 
+    scale_fill_viridis_c(name = "mae", option = "viridis", direction = -1, limits = c(0,0.27)) +
     scale_color_manual(values = c("TRUE" = "white",
                                   "FALSE" = "black"),
                        guide = "none") +
+    scale_y_discrete(limits = rev) +
     theme_bw() + 
     facet_wrap(~model) + 
     theme(
@@ -152,63 +156,31 @@ colors <- c(
             "Pvul" = "#06d6a0"         
         )
         
-glc_conds <- c("Glc_100_U13C", "Glc_100_113C", "Glc_50_U13C_50_113C")        
+glc_conds <- c("Glc_100_U13C", "Glc_100_113C", "Glc_50_U13C_50_113C")     
 
-.read_pred_results <- function(glc_cond, path_to_files, means = TRUE) {
-     
-     if(means == TRUE) {
-        suffix <- "_means.csv"
-     } else {
-        suffix <- ".csv"
-     }
-     
-    preds <- read_csv(here(paste0(path_to_files, "pred_", glc_cond, suffix))) %>% 
-        rename("ratio" = "...1") %>% 
-        pivot_longer(cols = -"ratio", names_to = "Sample", values_to = "prediction")
-        
-    q10 <- read_csv(here(paste0(path_to_files, "q10_", glc_cond, suffix))) %>% 
-        rename("ratio" = "...1") %>% 
-        pivot_longer(cols = -"ratio", names_to = "Sample", values_to = "q10")
-        
-        
-    q90 <- read_csv(here(paste0(path_to_files, "q90_", glc_cond, suffix))) %>% 
-        rename("ratio" = "...1") %>% 
-        pivot_longer(cols = -"ratio", names_to = "Sample", values_to = "q90")
-    
-    results <- preds %>% 
-        left_join(q10, by = c("ratio", "Sample")) %>% 
-        left_join(q90, by = c("ratio", "Sample")) %>% 
-        mutate(Glucose = glc_cond)
-        
-    return(results)
-    
-}
-
-preds_BuniPvul_means <- lapply(glc_conds, .read_pred_results, here("Output/species_comparison_flux_ratio_prediction/BuniPvul/predictors_w_noise/"), TRUE) %>% bind_rows() %>% mutate(model = "Buni", type = "mean")
-
-preds_Ecoli_means <- lapply(glc_conds, .read_pred_results, here("Output/species_comparison_flux_ratio_prediction/Ecoli/predictors_w_noise/"), TRUE) %>% bind_rows() %>% mutate(model = "Ecoli", type = "mean")
-
-preds <- bind_rows(preds_BuniPvul_means, preds_Ecoli_means)
+all_preds <- bind_rows(preds_ecoli, preds_buni) %>% 
+    complete(condition, flux_ratio, model) %>%
+    select(condition, flux_ratio, model, pred, pred_q10, pred_q90, strain) %>% 
+    unique()
 
 
-preds_bestpred <- preds %>% 
-    filter((Sample == "Ecoli" & model == "Ecoli") | (Sample %in% c("Buni", "Pvul") & model == "Buni")) %>% 
-    inner_join(best_preds, by = c("Glucose", "ratio", "model")) %>% 
-    filter(type == "mean") %>% 
-    mutate(Glucose = factor(
-        Glucose, 
+preds_bestpred <- all_preds %>% 
+    filter((strain == "Ecoli" & model == "Ecoli") | (strain %in% c("Buni", "Pvul") & model == "Buni")) %>% 
+    inner_join(best_preds, by = c("condition", "flux_ratio", "model")) %>% 
+    mutate(condition = factor(
+        condition, 
         levels = c("Glc_100_U13C", "Glc_100_113C", "Glc_50_U13C_50_113C"), 
         labels = c("100% U13C", "100% 1-13C", "50% U13C 50% 113C"))
     ) %>% 
-    mutate(ratio = gsub("_", " ", ratio))
+    mutate(flux_ratio = gsub("_", " ", flux_ratio))
     
 
-ggplot(preds_bestpred, aes(x = ratio, y = prediction, group = Sample, color = Sample)) + 
+ggplot(preds_bestpred, aes(x = flux_ratio, y = pred, group = strain, color = strain)) + 
     
     # facet_grid(~model) +
-    geom_errorbar(aes(ymin = q10, ymax = q90), position = position_dodge(width = 0.75), color = "black", width = 0) +  
+    geom_errorbar(aes(ymin = pred_q10, ymax = pred_q90), position = position_dodge(width = 0.75), color = "black", width = 0) +  
     geom_point(size = 2, position = position_dodge(width = 0.75)) +
-    
+    scale_y_discrete(limits = rev) +
     ylim(0,1) + 
     theme_bw() + 
     coord_flip() + 
@@ -241,9 +213,9 @@ shapes <- c(
     "MDV overlap of glucose\nand co-feed condition" = 18
 )
 
-cofeed_preds <- list.files(path = here("Output/plot_maes_preds_cofeed/CofeedBuni/")) # TODO: fix path of cofeeding predictions
+cofeed_preds <- list.files(path = here("Output/CofeedBuni/")) # TODO: fix path of cofeeding predictions
 
-preds_cofeed <- bind_rows(lapply((paste0("Output/plot_maes_preds_cofeed/CofeedBuni/", cofeed_preds)), \(x) read_csv(x))) %>% 
+preds_cofeed <- bind_rows(lapply((paste0(here("Output/CofeedBuni/"), cofeed_preds)), \(x) read_csv(x))) %>% 
     mutate(model = factor(condition, levels = c("Adenosine", "Cytidine", "Thymidine","Uridine"), labels = c("Glucose+\nAdenosine", "Glucose+\nCytidine", "Glucose+\nThymidine", "Glucose+\nUridine"))) %>% 
     filter(feature_subset == TRUE) %>% 
     mutate("Feature Set" = factor(comparison, levels = c("full_sel", "wo nuc sel", "glc_sel", "both_sel"), labels = c("nucleoside MDV\nprovided as input", "no nucleoside MDV\nprovided as input", "all MDVs in\nglucose condition", "MDV overlap of glucose\nand co-feed condition"))) %>% 
@@ -277,15 +249,19 @@ ggplot(preds_cofeed_noglc, aes(x = model, y = flux_ratio, fill = mae)) +
     ) + 
     xlab("") + 
     ylab("") + 
-    plot_layout(widths = unit(13, "cm"), heights = unit(7, "cm"))
+    plot_layout(widths = unit(12, "cm"), heights = unit(7, "cm"))
 
 ggsave(
     filename = "maes_cofeed.pdf", 
-    path = here("Output/plot_maes_preds/"),
+    path = here("Output/CofeedBuni/"),
     width = 8,
-    height = 5
+    height = 6
 )    
+```
 
+# Plot flux ratio predictions from real samples
+
+```{r}
 # select appropriate predictions and make a lineplot similar to what I had previously
 
 preds_cofeed_sel <- preds_cofeed %>% 
@@ -347,7 +323,7 @@ ggplot(preds_lowest, aes(x = pred, y = flux_ratio, color = model, shape = `Featu
      
 ggsave(
     filename = "pred_cofeed_nucl.pdf", 
-    path = here("Output/plot_maes_preds/"),
+    path = here("Output/CofeedBuni/"),
     width = 4,
     height = 4
 )    
@@ -434,7 +410,7 @@ ggplot(preds_lowest, aes(x = pred, y = flux_ratio, color = model, shape = `Featu
      
 ggsave(
     filename = "pred_cofeed_glconly.pdf", 
-    path = here("Output/plot_maes_preds/"),
+    path = here("Output/CofeedBuni/"),
     width = 4,
     height = 4
 )    
