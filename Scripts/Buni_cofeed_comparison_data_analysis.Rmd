@@ -13,14 +13,16 @@ library("here")
 source(here("Scripts/process13C.R"))
 
 dir.create(file.path(here("Output/Buni_cofeed_comparison_data_analysis/")), showWarnings = FALSE)
+dir.create(file.path(here("Output/Buni_cofeed_comparison_data_analysis/pos")), showWarnings = FALSE)
+dir.create(file.path(here("Output/Buni_cofeed_comparison_data_analysis/neg")), showWarnings = FALSE)
 
 
 ################## # negative
 
-path_to_CD34_output = here("Data/Buni_cofeed_comparison_data_analysis/20250822_Buni_cofeed_comparison_data_analysis/Negative/DBT003V5_20251023_CD34/Compounds_nested_20260226.xlsx") 
-path_to_metadata = here("Data/Buni_cofeed_comparison_data_analysis/20250822_Buni_cofeed_comparison_data_analysis/Negative/DBT003V5_20251023_CD34/metadata_neg.csv")
-path_to_annotation_corrections = here("Data/Buni_cofeed_comparison_data_analysis/20250822_Buni_cofeed_comparison_data_analysis/Negative/DBT003V5_20251023_CD34/annotation_corrections_neg.csv")
-rts = read_csv(here("Data/Buni_cofeed_comparison_data_analysis/20250822_Buni_cofeed_comparison_data_analysis/Negative/DBT003V5_20251023_CD34/mcf_rt_neg.csv"))
+path_to_CD34_output = here("Data/Buni_cofeed_comparison_data_analysis/20250822_DBT003V5_nucleoside_cofeeding_LCMS/Negative/DBT003V5_20251023_CD34/Compounds_nested_20260226.xlsx") 
+path_to_metadata = here("Data/Buni_cofeed_comparison_data_analysis/20250822_DBT003V5_nucleoside_cofeeding_LCMS/Negative/DBT003V5_20251023_CD34/metadata_neg.csv")
+path_to_annotation_corrections = here("Data/Buni_cofeed_comparison_data_analysis/20250822_DBT003V5_nucleoside_cofeeding_LCMS/Negative/DBT003V5_20251023_CD34/annotation_corrections_neg.csv")
+rts = read_csv(here("Data/Buni_cofeed_comparison_data_analysis/20250822_DBT003V5_nucleoside_cofeeding_LCMS/Negative/DBT003V5_20251023_CD34/mcf_rt_neg.csv"))
 
 
 relabs_neg <- format_CD34_output(
@@ -53,10 +55,10 @@ relabs_filtered_neg <- relabs_filtered_neg %>%
 
 
 ############### # positive
-path_to_CD34_output = here("Data/Buni_cofeed_comparison_data_analysis/20250822_Buni_cofeed_comparison_data_analysis/Positive/DBT003V5_20251023_CD34/Compounds_nested_20260226.xlsx") 
-path_to_metadata = here("Data/Buni_cofeed_comparison_data_analysis/20250822_Buni_cofeed_comparison_data_analysis/Positive/DBT003V5_20251023_CD34/metadata_pos.csv")
-path_to_annotation_corrections = here("Data/Buni_cofeed_comparison_data_analysis/20250822_Buni_cofeed_comparison_data_analysis/Positive/DBT003V5_20251023_CD34/annotation_corrections_pos.csv")
-rts = read_csv(here("Data/Buni_cofeed_comparison_data_analysis/20250822_Buni_cofeed_comparison_data_analysis/Positive/DBT003V5_20251023_CD34/mcf_rt_pos.csv"))
+path_to_CD34_output = here("Data/Buni_cofeed_comparison_data_analysis/20250822_DBT003V5_nucleoside_cofeeding_LCMS/Positive/DBT003V5_20251023_CD34/Compounds_nested_20260226.xlsx") 
+path_to_metadata = here("Data/Buni_cofeed_comparison_data_analysis/20250822_DBT003V5_nucleoside_cofeeding_LCMS/Positive/DBT003V5_20251023_CD34/metadata_pos.csv")
+path_to_annotation_corrections = here("Data/Buni_cofeed_comparison_data_analysis/20250822_DBT003V5_nucleoside_cofeeding_LCMS/Positive/DBT003V5_20251023_CD34/annotation_corrections_pos.csv")
+rts = read_csv(here("Data/Buni_cofeed_comparison_data_analysis/20250822_DBT003V5_nucleoside_cofeeding_LCMS/Positive/DBT003V5_20251023_CD34/mcf_rt_pos.csv"))
 
 relabs_pos <- format_CD34_output(
     path_to_CD34_output,
@@ -345,7 +347,8 @@ plot_perc_carb(
 dir.create(file.path(here("Output/Buni_cofeed_comparison_data_analysis/13CMFA/")), showWarnings = FALSE)
 
 patterns_for_modeling <- extract_patterns_for_modeling(
-    relabs_filtered_remdup
+    relabs_filtered_remdup, 
+    here("Data/Buni_cofeed_comparison_data_analysis/index.csv")
 ) %>%
   arrange(identifier, strain, medium, as.numeric(str_extract(isot_model_name, "\\d+$")))
 

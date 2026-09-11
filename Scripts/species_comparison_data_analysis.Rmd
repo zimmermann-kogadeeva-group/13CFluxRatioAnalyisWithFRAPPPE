@@ -13,6 +13,8 @@ library("here")
 source(here("Scripts/process13C.R"))
 
 dir.create(file.path(here("Output/species_comparison_data_analysis/")), showWarnings = FALSE)
+dir.create(file.path(here("Output/species_comparison_data_analysis/pos/")), showWarnings = FALSE)
+dir.create(file.path(here("Output/species_comparison_data_analysis/neg/")), showWarnings = FALSE)
 
 # load the data repository before continuing
 
@@ -328,14 +330,15 @@ dir.create(file.path(here("Output/species_comparison_data_analysis/13CMFA/")), s
 # extract_patterns_for_modeling <- function(df, m0_threshold = NA, m0_group, remove_notinall_groups = TRUE)
 
 patterns_for_modeling <- extract_patterns_for_modeling(
-    relabs_filtered_remdup
+    relabs_filtered_remdup, 
+    here("Data/Buni_cofeed_comparison_data_analysis/index.csv")
 ) %>%
   arrange(identifier, strain, medium, as.numeric(str_extract(isot_model_name, "\\d+$")))
 
 
 # read in Buni model to select features present in the Buni model (all feats in the Buni model are also in the Ecoli model)
 
-buni_model <- read_tsv(here("Models/Buniformis/Buniformis_individualBiomass.tsv")) 
+buni_model <- read_tsv(here("Config/Models/Buniformis/Buniformis_individualBiomass.tsv")) 
 colnames(buni_model) <- c("reaction_id", "substrate", "product", "reversibility")
 subs <- pull(buni_model, substrate) %>% strsplit("\\+") %>% unlist() %>% gsub("\\(.*", "", .)
 prods <- pull(buni_model, product) %>% strsplit("\\+") %>% unlist() %>% gsub("\\(.*", "", .)

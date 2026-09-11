@@ -3,13 +3,6 @@ library(readxl)
 library(here)
 # Functions to process labeling data
 
-path_to_CD34_output = here("Data/DBT003ACADAF_basis_zwf/neg/20260124_DBT003ACADAF_compounds_nested.xlsx")
-output_path = here("Data/DBT003ACADAF_basis_zwf/neg/20260124_DBT003ACADAF_relabs.csv")
-path_to_annotation_corrections = here("Output/DBT003ACADAF3_data_filtering_syncronized/annotation_corrections.csv")
-path_to_metadata = here("Output/DBT003ACADAF3_data_filtering_syncronized/metadata.csv")
-path_to_std_rts = here("Data/DBT003T4_Buni_cofeeding_LCMSMS/mcf_rt_neg.csv")
-rts <- read_csv(path_to_std_rts)
-
 # utils
 
 spec <- function(df) {
@@ -416,9 +409,9 @@ calc_cosine_similarity <- function(relabs, ref_strain = NA, ref_medium = NA) {
 
 # function to extract labeling patterns for modeling
 
-extract_patterns_for_modeling <- function(relabs) {
+extract_patterns_for_modeling <- function(relabs, path_to_index) {
     
-    index <- read_csv(here("Output/DBT003_create_metabolite_data_model_index/index.csv")) %>% 
+    index <- read_csv(path_to_index) %>% 
       select(-mode)
     
     if(!("mode" %in% colnames(relabs))) {
@@ -428,54 +421,7 @@ extract_patterns_for_modeling <- function(relabs) {
     mean_relabs <- calc_mean_relabs(relabs %>% group_by(strain, medium, experiment, isotopologue, identifier, mode)) %>% # bind names and index for model mapping
       left_join(relabs %>% select(identifier, Name) %>% unique(), by = "identifier") %>% 
       inner_join(index, by = join_by("Name" == "metabolite_data"))
-    # 
-    # if(!(is.na(m0_threshold))) {
-    # 
-    #     features_qc_filtered <- relabs %>%
-    #         filter(medium == m0_group & isotopologue == "m+0" & relab >= m0_threshold) %>%
-    #         pull(identifier) %>%
-    #         unique()
-    # 
-    #     mean_relabs <- filter(mean_relabs, !(identifier %in% features_qc_filtered))
-    # 
-    # }
-    # 
-    # if(remove_notinall_groups) {
-    #     
-    #     groups_medium <- mean_relabs %>% pull(medium) %>% unique()
-    #     groups_strain <- mean_relabs %>% pull(strain) %>% unique()
-    #     
-    #     mean_relabs <- mean_relabs %>% 
-    #         group_by(identifier, isotopologue) %>% 
-    #         filter(n() == (length(groups_medium) * length(groups_strain)))
-    # 
-    # }
-    # 
-    # # remove features where multiple peaks are still found for by selecting the one with the lowest standard deviation
-    # 
-    # duplicates <- mean_relabs %>% 
-    #     ungroup() %>% 
-    #     select(identifier, Name) %>% 
-    #     unique() %>% 
-    #     group_by(Name) %>% 
-    #     tally() %>% 
-    #     filter(n>1) %>% 
-    #     pull(Name) %>% 
-    #     unique()
-    # 
-    # # select the one with lower sd
-    # 
-    # mean_relabs_rm <- mean_relabs %>% 
-    #     filter(Name %in% duplicates) %>% 
-    #     group_by(identifier) %>% 
-    #     mutate(max_sd = max(sd)) %>% 
-    #     mutate(max_sd = ifelse(is.na(max_sd), 1, max_sd)) %>% 
-    #     group_by(Name) %>% 
-    #     filter(!(max_sd == min(max_sd))) %>% 
-    #     pull(identifier)
-    # 
-    # mean_relabs <- filter(mean_relabs, !(identifier %in% mean_relabs_rm))
-    # 
+    
     # adapt names to match names in modeling framework
     
     output <- mean_relabs %>%
@@ -825,25 +771,3 @@ plot_cosine_similarities_scatterplot <- function(df, x, y, title, output_dir, x_
 }
 
 
-
-####################################################################################################################################
-
-# relabs <- format_CD34_output(
-#     path_to_CD34_output,
-#     path_to_metadata, 
-#     path_to_annotation_corrections
-# )
-
-# relabs_filtered <- relabs %>% 
-#     filter_background(., 3) %>% 
-#     filter((experiment == "DBT003AD" & strain %in% c("Buni", "Pvul")) | (experiment == "DBT003AF" & strain == "Ecoli")) %>% 
-#     group_by(identifier, strain, medium) %>%
-#     filter_nobs(., 3) %>% 
-#     filter_MS2() %>% 
-#     filter_rtlib(., rts) %>% # until here, everything matches perfectly
-#     add_mslvl() %>%
-#     ungroup() %>%
-#     filter_sd(., 0.3) # here, the user can decide how he wants to group. As I want to compare predictors across glucose conditions and species, I keep all isotopologues the same for all conditions
-    
-# perc_lab_carb <- calc_perc_lab_carb(relabs_filtered)
-# cosine_sim <- calc_cosine_similarity(relabs_filtered, ref_strain = "Ecoli")
