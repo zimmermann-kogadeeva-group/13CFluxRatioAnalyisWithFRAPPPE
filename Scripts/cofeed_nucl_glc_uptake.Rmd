@@ -1,0 +1,190 @@
+---
+title: "visualize glucose and nucleoside uptake"
+output: html_document
+date: "2026-03-04"
+---
+
+## Visualize MAE of predictors as performance evaluation
+
+```{r}
+
+# read in nucleoside uptake data
+
+library(rstatix)
+library(tidyverse)
+library(here)
+library(ggpubr)
+
+dir.create(file.path(here("Output/cofeed_nucl_glc_uptake/")), showWarnings = FALSE)
+
+colors <- c(
+    Glucose   = "#56B4E9",
+    Ribose    = "#CC79A7",
+    Thymidine = "#D55E00",
+    Adenosine = "#009E73",
+    Uridine   = "#E69F00",
+    Cytidine  = "#0072B2"
+)
+
+df <- read_csv(here("Data/cofeed_nucl_glc_uptake/nucleoside_uptake_mM.csv")) %>% 
+  mutate(Species = factor(Species, levels = c("B. uniformis", "P. vulgatus", "blank")))
+
+colors_species <- c(
+  "B. uniformis" = "#ef476f", 
+  "P. vulgatus" = "#06d6a0", 
+  "blank" = "darkgrey"
+)
+
+df_means <- df %>% 
+    group_by(Species, hours, Nucleoside) %>% 
+    summarise(
+        conc_mean = mean(conc_mM), 
+        conc_sd = sd(conc_mM)
+    )
+
+stats <- df %>%
+    mutate(hours = as.character(hours)) %>% 
+    group_by(hours, Nucleoside) %>%
+    t_test(conc_mM ~ Species, ref.group = "blank") %>%
+    adjust_pvalue(method = "BH") %>%
+    add_significance() %>%
+    add_xy_position(
+        x = "hours", 
+        dodge = 0.8
+    ) %>% left_join(
+      df_means %>% mutate(hours = as.character(hours)), 
+      by = join_by("Nucleoside" == "Nucleoside", 
+                   "hours" == "hours", 
+                   "group2" == "Species")
+    )
+
+# write out stats
+
+stats %>% select(hours, Nucleoside, group1, group2, p.adj, p.adj.signif, conc_mean, conc_sd) %>% write_csv(here("Output/cofeed_nucl_glc_uptake/nucleoside_stats.csv"))
+
+
+ggplot(df, aes(x = as.character(hours), y = conc_mM, color = Species)) + 
+    geom_point(position = position_jitterdodge(jitter.width = 0.3, dodge.width = 0.8), size = 2) + 
+    geom_point(
+      data = df_means, 
+      aes(x = as.character(hours), y = conc_mean), 
+      shape = 95, 
+      position = position_dodge(width = 0.8), 
+      size = 10) + 
+    stat_pvalue_manual(
+          data = stats,
+          label = "p.adj.signif",  
+          tip.length = 0.01,
+          hide.ns = TRUE
+      ) +
+    facet_wrap(. ~ Nucleoside, scale = "free") + 
+    theme_bw() + 
+    theme(
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        axis.text.x = element_text(size = 13), 
+        axis.text.y = element_text(size = 15), 
+        strip.text = element_text(size = 15), 
+        legend.text = element_text(size = 15), 
+        legend.title = element_text(size = 17), 
+        axis.title.x = element_text(size = 15), 
+        axis.title.y = element_text(size = 15), 
+        strip.background = element_rect(fill = "white")
+    )  +
+    ylim(0,17) + 
+    scale_color_manual(values = colors_species) + 
+    xlab("hours")
+
+ggsave(
+    filename = "nucleoside_conc.pdf", 
+    path = here("Output/cofeed_nucl_glc_uptake/"), 
+    width = 12, 
+    height = 4
+)
+
+```
+
+
+## Glucose uptake quantification
+
+After looking at nucleoside quantification, we next check whether the uptake of glucose is better quantified
+
+```{r}
+
+conc <- read_csv(here("Data/cofeed_nucl_glc_uptake/glucose_concentration_mM.csv")) %>%
+  mutate(hours = as.character(hours)) %>% 
+  mutate(Species = factor(Species, levels = c("B. uniformis", "P. vulgatus", "blank")))
+
+conc_means <- conc %>% 
+  group_by(hours, Species, cofedNucleoside) %>% 
+      summarise(
+        conc_mM_mean = mean(conc_abs_mM), 
+        conc_mM_sd = sd(conc_abs_mM), 
+        fluo_mean = mean(fluo_corr), 
+        fluo_sd = sd(fluo_corr)
+    )
+  
+stats <- conc %>%
+    group_by(hours, cofedNucleoside) %>%
+    t_test(conc_abs_mM ~ Species, ref.group = "blank") %>%
+    adjust_pvalue(method = "BH") %>%
+    add_significance() %>%
+    add_xy_position(
+        x = "hours", 
+        dodge = 0.8
+    ) %>% 
+  left_join(
+    conc_means %>% filter(Species != "blank") %>% select(-fluo_mean, -fluo_sd), 
+    by = join_by(
+      "cofedNucleoside" == "cofedNucleoside", 
+      "hours" == "hours", 
+      "group2" == "Species"
+    )
+  )
+
+stats %>% select(hours, cofedNucleoside, group1, group2, p.adj, p.adj.signif, conc_mM_mean, conc_mM_sd) %>% write_csv(here("Output/cofeed_nucl_glc_uptake/glucose_stats.csv"))
+
+
+
+ggplot(conc, aes(x = hours, y = conc_abs_mM, color = Species)) + 
+    geom_point(position = position_jitterdodge(jitter.width = 0.3, dodge.width = 0.8), size = 2) + 
+    geom_point(
+      data = conc_means, 
+      aes(x = hours, y = conc_mM_mean), 
+      shape = 95, 
+      position = position_dodge(width = 0.8), 
+      size = 10) + 
+    stat_pvalue_manual(
+          data = stats,
+          label = "p.adj.signif",  
+          tip.length = 0.01,
+          hide.ns = TRUE
+      ) +
+    facet_wrap(. ~ cofedNucleoside, scale = "free") + 
+    theme_bw() + 
+    theme(
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        axis.text.x = element_text(size = 13), 
+        axis.text.y = element_text(size = 15), 
+        strip.text = element_text(size = 15), 
+        legend.text = element_text(size = 15), 
+        legend.title = element_text(size = 17), 
+        axis.title.x = element_text(size = 15), 
+        axis.title.y = element_text(size = 15), 
+        strip.background = element_rect(fill = "white")
+    )  + 
+    # ylim(0,17) + 
+    scale_color_manual(values = colors_species)
+
+
+ggsave(
+    filename = "glucose_uptake.pdf", 
+    path = here("Output/cofeed_nucl_glc_uptake/"), 
+    width = 12, 
+    height = 4
+)
+
+
+
+```
