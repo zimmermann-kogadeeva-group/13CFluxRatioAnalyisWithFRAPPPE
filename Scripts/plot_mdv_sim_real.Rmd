@@ -13,6 +13,8 @@ Based on the Buniformis model, we simulate fluxes and labeling patterns. Here, w
 library(tidyverse)
 library(here)
 
+dir.create(file.path(here("Output/plot_mdv_sim_real/")), showWarnings = FALSE)
+
 colors <- c(
             "Buni" = "#ef476f", 
             "Ecoli" = "#118ab2",
@@ -31,7 +33,7 @@ mdvs_ecolimodel <- read_csv(here("Output/species_comparison_flux_ratio_predictio
 
 # Load experimental data
 
-exp_data <- read_csv(here("Output/species_comparison_flux_ratio_prediction/13CMFA/labeling_patterns_Glc_100_U13C.csv"))
+exp_data <- read_csv(here("Data/species_comparison_flux_ratio_prediction/labeling_patterns_Glc_100_U13C.csv"))
 
 exp_data_long <- exp_data %>% 
     separate_wider_delim("isot_model_name", names = c("group", "ncarb", "subgroup"), delim = "_") %>% 
@@ -110,3 +112,159 @@ ggsave(
 
 ```
 
+## Plot extended view on mdv simulation distribution for all metabolites simulated
+
+
+```{r}
+
+mdvs_bunimodel <- read_csv(here("Output/species_comparison_flux_ratio_prediction/BuniPvul/Buniformis_individualBiomass_mdvs_1000_U13C.csv")) %>% 
+    mutate(isot = factor(subgroup, levels = c("0", '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12')))
+
+mdvs_ecolimodel <- read_csv(here("Output/species_comparison_flux_ratio_prediction/Ecoli/Ecoli_individualBiomass_mdvs_1000_U13C.csv")) %>% 
+    mutate(isot = factor(subgroup, levels = c("0", '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12')))
+     
+
+#TODO: fix permanent path to relative
+
+exp_data <- read_csv(here("Data/species_comparison_flux_ratio_prediction/labeling_patterns_Glc_100_U13C.csv"))
+
+exp_data_long <- exp_data %>% 
+    separate_wider_delim("isot_model_name", names = c("group", "ncarb", "subgroup"), delim = "_") %>% 
+    select(-ncarb) %>% 
+    mutate(isot = factor(subgroup, levels = c("0", '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'))) %>% 
+    filter(group %in% mdvs_bunimodel$group)
+    
+ggplot(mdvs_bunimodel, aes(x = isot, y = value)) +
+    geom_boxplot(outlier.shape = NA) + 
+    geom_point(position = position_jitter(width = 0.1), alpha = 0.1) + 
+    geom_point(
+        data = exp_data_long %>% filter(strain != "Ecoli"), 
+        mapping = aes(x = isot, y = mean, color = strain), 
+        size = 2,
+        position = position_dodge(width = 0.5)
+        ) + 
+    geom_errorbar(
+        data = exp_data_long %>% filter(strain != "Ecoli"), 
+        mapping = aes(x = isot, y = mean, ymin = mean - sd, ymax = mean + sd, color = strain), 
+        position = position_dodge(width = 0.5)
+    ) + 
+    coord_cartesian(ylim = c(0,1)) + 
+    facet_wrap(group ~ ., scale = "free", ncol = 3) + 
+    theme_bw() + 
+    theme(
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        strip.background = element_rect(fill = "white")
+    ) + 
+    ylab("relative abundance") + 
+    xlab("isotopologue") + 
+    scale_color_manual(values = colors) 
+    
+ggsave(
+    filename = "mdvs_real_sim_Buniformis_individualBiomass_all.pdf", 
+    path = here("Output/plot_mdv_sim_real/"),
+    width = 5.5,
+    height = 7
+)
+
+
+
+   
+ggplot(mdvs_ecolimodel, aes(x = isot, y = value)) +
+    geom_boxplot(outlier.shape = NA) + 
+    geom_point(position = position_jitter(width = 0.1), alpha = 0.05) + 
+    geom_point(
+        data = exp_data_long  %>% filter(strain == "Ecoli"), 
+        mapping = aes(x = isot, y = mean, color = strain), 
+        size = 2,
+        position = position_dodge(width = 0.5)
+        ) + 
+    geom_errorbar(
+        data = exp_data_long %>% filter(strain == "Ecoli"), 
+        mapping = aes(x = isot, y = mean, ymin = mean - sd, ymax = mean + sd, color = strain), 
+        position = position_dodge(width = 0.5)
+    ) + 
+    coord_cartesian(ylim = c(0,1)) + 
+    facet_wrap(group ~ ., scale = "free", ncol = 3) + 
+    theme_bw() + 
+    theme(
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        strip.background = element_rect(fill = "white")
+    ) + 
+    ylab("relative abundance") + 
+    xlab("isotopologue") + 
+    scale_color_manual(values = colors) 
+    
+ggsave(
+    filename = "mdvs_real_sim_Ecoli_individualBiomass_all.pdf", 
+    path = here("Output/plot_mdv_sim_real/"),
+    width = 5.5,
+    height = 7
+)
+
+
+```
+
+## Plot mdv distributions of adenosine simulation case
+
+```{r}
+
+colors <- c(
+    Glucose   = "#56B4E9",
+    Ribose    = "#CC79A7",
+    Thymidine = "#D55E00",
+    Adenosine = "#009E73",
+    Uridine   = "#E69F00",
+    Cytidine  = "#0072B2"
+)
+
+
+mdvs_bunimodel <- read_csv(here("Output/CofeedBuni/Buniformis_individualBiomass_mdvs_1000_U13C_adn_cofeed.csv")) %>% 
+    mutate(isot = factor(subgroup, levels = c("0", '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11')))
+
+exp_data <- read_csv(here("Output/Buni_cofeed_comparison_data_analysis/13CMFA/labeling_patterns_Buni.csv"))
+
+exp_data_long <- exp_data %>% 
+    separate_wider_delim("isot_model_name", names = c("group", "ncarb", "subgroup"), delim = "_") %>% 
+    select(-ncarb) %>% 
+    mutate(isot = factor(subgroup, levels = c("0", '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'))) %>% 
+    filter(group %in% mdvs_bunimodel$group) %>% 
+    filter(medium == 'Adenosine') 
+    
+ggplot(mdvs_bunimodel %>% filter(group %in% exp_data_long$group), aes(x = isot, y = value)) +
+    geom_boxplot(outlier.shape = NA) + 
+    geom_point(position = position_jitter(width = 0.1), alpha = 0.05, size = 0.3) + 
+    geom_point(
+        data = exp_data_long,
+        mapping = aes(x = isot, y = mean, color = medium),
+        size = 2,
+        position = position_dodge(width = 0.5)
+        ) +
+    geom_errorbar(
+        data = exp_data_long,
+        mapping = aes(x = isot, y = mean, ymin = mean - sd, ymax = mean + sd, width = 0.3, color = medium),
+        position = position_dodge(width = 0.5)
+    ) +
+    coord_cartesian(ylim = c(0,1)) + 
+    facet_wrap(group ~ ., scale = "free", ncol = 3) + 
+    theme_bw() + 
+    theme(
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        strip.background = element_rect(fill = "white")
+    ) + 
+    ylab("relative abundance") + 
+    xlab("isotopologue") +
+    scale_color_manual(values = colors)
+    
+ggsave(
+    filename = "mdvs_real_sim_Buniformis_individualBiomass_adn.pdf", 
+    path = here("Output/plot_mdv_sim_real/"),
+    width = 8.5,
+    height = 11
+)
+
+
+
+```

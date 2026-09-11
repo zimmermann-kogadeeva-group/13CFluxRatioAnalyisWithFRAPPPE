@@ -213,7 +213,9 @@ shapes <- c(
     "MDV overlap of glucose\nand co-feed condition" = 18
 )
 
-cofeed_preds <- list.files(path = here("Output/CofeedBuni/")) # TODO: fix path of cofeeding predictions
+cofeed_preds <- list.files(path = here("Output/CofeedBuni/"))
+
+cofeed_preds <- cofeed_preds[grepl("predictions", cofeed_preds)]
 
 preds_cofeed <- bind_rows(lapply((paste0(here("Output/CofeedBuni/"), cofeed_preds)), \(x) read_csv(x))) %>% 
     mutate(model = factor(condition, levels = c("Adenosine", "Cytidine", "Thymidine","Uridine"), labels = c("Glucose+\nAdenosine", "Glucose+\nCytidine", "Glucose+\nThymidine", "Glucose+\nUridine"))) %>% 
@@ -253,7 +255,7 @@ ggplot(preds_cofeed_noglc, aes(x = model, y = flux_ratio, fill = mae)) +
 
 ggsave(
     filename = "maes_cofeed.pdf", 
-    path = here("Output/CofeedBuni/"),
+    path = here("Output/plot_maes_preds/"),
     width = 8,
     height = 6
 )    
@@ -323,7 +325,7 @@ ggplot(preds_lowest, aes(x = pred, y = flux_ratio, color = model, shape = `Featu
      
 ggsave(
     filename = "pred_cofeed_nucl.pdf", 
-    path = here("Output/CofeedBuni/"),
+    path = here("Output/plot_maes_preds/"),
     width = 4,
     height = 4
 )    
@@ -410,7 +412,7 @@ ggplot(preds_lowest, aes(x = pred, y = flux_ratio, color = model, shape = `Featu
      
 ggsave(
     filename = "pred_cofeed_glconly.pdf", 
-    path = here("Output/CofeedBuni/"),
+    path = here("Output/plot_maes_preds/"),
     width = 4,
     height = 4
 )    
